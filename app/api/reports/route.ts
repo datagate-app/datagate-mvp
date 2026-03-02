@@ -1,28 +1,49 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase-admin";
+import { adminDb, adminAuth } from "@/lib/firebase-admin";
 import { parseBilansCsv } from "@/lib/parser/parseBilansCsv";
 import { calculateMetrics } from "@/lib/parser/calculateMetrics";
 
-/** =======================
- *  Simple in-memory cache
- *  ======================= */
+/* =====================================================
+   AUTH HELPER
+===================================================== */
+async function verifyAuth(req: Request): Promise<string> {
+  const authHeader = req.headers.get("authorization");
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    throw new Error("Unauthorized");
+  }
+
+  const token = authHeader.split("Bearer ")[1];
+
+  try {
+    const decoded = await adminAuth.verifyIdToken(token);
+    return decoded.uid;
+  } catch {
+    throw new Error("Unauthorized");
+  }
+}
+
+/* =====================================================
+   SIMPLE IN-MEMORY CACHE (MVP SHIELD)
+===================================================== */
 type CacheEntry = { ts: number; data: any };
+
 const __reportsCache: Map<string, CacheEntry> =
   (globalThis as any).__reportsCache ??
   ((globalThis as any).__reportsCache = new Map<string, CacheEntry>());
 
-const CACHE_TTL_MS = 15_000; // 15s MVP shield
+const CACHE_TTL_MS = 15_000;
 
-/** =======================
- *  Quota cooldown (MVP shield)
- *  ======================= */
+/* =====================================================
+   QUOTA COOLDOWN (MVP SHIELD)
+===================================================== */
 const __quotaCooldown: { until: number; lastDetails?: string } =
   (globalThis as any).__quotaCooldown ??
   ((globalThis as any).__quotaCooldown = { until: 0, lastDetails: "" });
 
-const QUOTA_COOLDOWN_MS = 60_000; // 60s
+const QUOTA_COOLDOWN_MS = 60_000;
 
 function isQuotaError(err: any) {
   const msg = String(err?.details || err?.message || "").toLowerCase();
@@ -31,6 +52,7 @@ function isQuotaError(err: any) {
 
 function quotaResponse(extra?: { details?: string }) {
   const retryAfterMs = Math.max(0, __quotaCooldown.until - Date.now());
+
   return NextResponse.json(
     {
       error: "Quota exceeded",
@@ -43,33 +65,33 @@ function quotaResponse(extra?: { details?: string }) {
   );
 }
 
-//
-// POST → create report
-//
+/* =====================================================
+   POST → CREATE REPORT
+===================================================== */
 export async function POST(req: Request) {
   try {
+    const uid = await verifyAuth(req);
     const contentType = req.headers.get("content-type");
 
-    // 🔹 DEMO JSON MODE
+    /* ---------- DEMO JSON MODE ---------- */
     if (contentType?.includes("application/json")) {
       const body = await req.json();
-      const { ownerId, name, industry, metrics } = body;
+      const { name, industry, metrics } = body;
 
-      if (!ownerId || !metrics) {
+      if (!metrics) {
         return NextResponse.json({ error: "Brak danych" }, { status: 400 });
       }
 
       const docRef = await adminDb.collection("reports").add({
         name: name || "Raport z demo",
-        ownerId,
+        ownerId: uid,
         industry: industry || null,
         status: "ready",
         createdAt: new Date(),
         metrics,
       });
 
-      // invalidate cache for this user
-      __reportsCache.delete(ownerId);
+      __reportsCache.delete(uid);
 
       return NextResponse.json({
         id: docRef.id,
@@ -78,20 +100,15 @@ export async function POST(req: Request) {
       });
     }
 
-    // 🔹 CSV MODE
+    /* ---------- CSV MODE ---------- */
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-    const ownerId = formData.get("ownerId") as string | null;
     const industry = formData.get("industry") as string | null;
 
-    if (!file || !ownerId) {
-      return NextResponse.json(
-        { error: "Brak pliku lub ownerId" },
-        { status: 400 }
-      );
+    if (!file) {
+      return NextResponse.json({ error: "Brak pliku" }, { status: 400 });
     }
 
-    // MVP: wymagamy csv
     const fileName = file.name || "Nowy raport";
     const isCsv =
       file.type === "text/csv" || fileName.toLowerCase().endsWith(".csv");
@@ -109,15 +126,14 @@ export async function POST(req: Request) {
 
     const docRef = await adminDb.collection("reports").add({
       name: fileName,
-      ownerId,
+      ownerId: uid,
       industry: industry || null,
       status: "ready",
       createdAt: new Date(),
       metrics,
     });
 
-    // invalidate cache for this user
-    __reportsCache.delete(ownerId);
+    __reportsCache.delete(uid);
 
     return NextResponse.json({
       id: docRef.id,
@@ -125,6 +141,10 @@ export async function POST(req: Request) {
       status: "ready",
     });
   } catch (err: any) {
+    if (err?.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     console.error("POST reports error:", err);
 
     if (isQuotaError(err)) {
@@ -146,32 +166,25 @@ export async function POST(req: Request) {
   }
 }
 
-//
-// GET → fetch reports for user
-//
+/* =====================================================
+   GET → FETCH REPORTS FOR LOGGED USER
+===================================================== */
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const ownerId = searchParams.get("ownerId");
+    const uid = await verifyAuth(req);
 
-    if (!ownerId) {
-      return NextResponse.json([]);
-    }
-
-    // ✅ jeśli quota trzyma → nie dotykamy Firestore
     if (Date.now() < __quotaCooldown.until) {
       return quotaResponse();
     }
 
-    // ✅ cache hit (MVP shield)
-    const cached = __reportsCache.get(ownerId);
+    const cached = __reportsCache.get(uid);
     if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
       return NextResponse.json(cached.data);
     }
 
     const snap = await adminDb
       .collection("reports")
-      .where("ownerId", "==", ownerId)
+      .where("ownerId", "==", uid)
       .orderBy("createdAt", "desc")
       .limit(30)
       .get();
@@ -181,11 +194,14 @@ export async function GET(req: Request) {
       ...doc.data(),
     }));
 
-    // ✅ set cache
-    __reportsCache.set(ownerId, { ts: Date.now(), data: reports });
+    __reportsCache.set(uid, { ts: Date.now(), data: reports });
 
     return NextResponse.json(reports);
   } catch (err: any) {
+    if (err?.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     console.error("GET reports error:", err);
 
     if (isQuotaError(err)) {
