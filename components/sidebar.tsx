@@ -7,31 +7,47 @@ import { usePathname } from "next/navigation";
 export default function Sidebar() {
   const pathname = usePathname();
 
-  const navItem = (href: string, label: string) => {
+  const navItem = (
+    href: string,
+    label: string,
+    subtitle?: string
+  ) => {
     const isActive = pathname === href;
 
     return (
       <Link
         href={href}
-        className={`block px-4 py-2 rounded-lg text-sm transition
+        className={`block px-4 py-3 rounded-lg transition
         ${
           isActive
-            ? "bg-white/10 text-white font-medium"
+            ? "bg-white/10 text-white"
             : "text-white/70 hover:text-white hover:bg-white/5"
         }`}
       >
-        {label}
+        <div className="flex flex-col">
+          <span className="text-sm font-medium">
+            {label}
+          </span>
+
+          {subtitle && (
+            <span className="text-xs text-white/40 mt-0.5">
+              {subtitle}
+            </span>
+          )}
+        </div>
       </Link>
     );
   };
 
   return (
-    <aside className="w-64 min-h-screen flex flex-col" style={{ backgroundColor: "#0d1a34" }}>
-      
+    <aside
+      className="w-64 min-h-screen flex flex-col"
+      style={{ backgroundColor: "#0d1a34" }}
+    >
       {/* LOGO */}
       <div className="px-6 py-6 border-b border-white/10">
         <Link href="/dashboard" className="flex items-center">
-          <div className="relative h-15 w-15">
+          <div className="relative h-12 w-12">
             <Image
               src="/logo_dark_big.png"
               alt="DataGate"
@@ -45,8 +61,16 @@ export default function Sidebar() {
 
       {/* NAV */}
       <nav className="flex-1 px-4 py-6 space-y-2">
-        {navItem("/dashboard", "Dashboard")}
-        {navItem("/upload", "Upload")}
+        {navItem(
+          "/dashboard",
+          "Raport finansowy",
+          "DataGate Insight"
+        )}
+
+        {navItem(
+          "/upload",
+          "Stwórz raport"
+        )}
       </nav>
 
       {/* FOOTER */}

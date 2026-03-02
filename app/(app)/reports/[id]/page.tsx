@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { auth } from "@/lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, User } from "firebase/auth";
 import { useParams } from "next/navigation";
 import ReportView from "../components/ReportView";
 
@@ -34,10 +34,11 @@ export default function ReportPage() {
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [benchmark, setBenchmark] = useState<BenchmarkResponse | null>(null);
-  const [benchmarkLoading, setBenchmarkLoading] = useState(false);
+  const [benchmark, setBenchmark] =
+    useState<BenchmarkResponse | null>(null);
+  const [benchmarkLoading, setBenchmarkLoading] =
+    useState(false);
 
-  // DEBUG: pokaże status i body odpowiedzi z API (np. 404/403/500)
   const [apiDebug, setApiDebug] = useState<any>(null);
 
   useEffect(() => {
@@ -60,8 +61,20 @@ export default function ReportPage() {
         setLoading(true);
         setApiDebug(null);
 
-        // 1) FULL REPORT
-        const res = await fetch(`/api/reports/${reportId}?ownerId=${user.uid}`);
+        const token = await user.getIdToken();
+
+        /* ============================
+           1) FULL REPORT
+        ============================ */
+        const res = await fetch(
+          `/api/reports/${reportId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
         const text = await res.text();
 
         if (!res.ok) {
@@ -85,12 +98,20 @@ export default function ReportPage() {
         setReport(full);
         setLoading(false);
 
-        // 2) BENCHMARK
+        /* ============================
+           2) BENCHMARK
+        ============================ */
         setBenchmarkLoading(true);
 
         const bRes = await fetch(
-          `/api/reports/${reportId}/benchmark?period=t0&limit=200`
+          `/api/reports/${reportId}/benchmark?period=t0&limit=200`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
+
         const bText = await bRes.text();
 
         if (!bRes.ok) {
@@ -115,10 +136,12 @@ export default function ReportPage() {
         setBenchmark(bData ?? null);
       } catch (e: any) {
         if (cancelled) return;
+
         setApiDebug({
           step: "catch",
           error: e?.message ?? String(e),
         });
+
         setReport(null);
         setBenchmark(null);
         setLoading(false);
@@ -134,14 +157,20 @@ export default function ReportPage() {
   }, [reportId]);
 
   if (loading) {
-    return <div className="h-40 animate-pulse rounded-2xl bg-gray-200" />;
+    return (
+      <div className="h-40 animate-pulse rounded-2xl bg-gray-200" />
+    );
   }
 
-  // DEBUG VIEW (zawsze pokaże dlaczego nie ma reportu)
+  /* ============================
+     DEBUG VIEW
+  ============================ */
   if (!report) {
     return (
       <div className="space-y-2 text-sm">
-        <p className="font-semibold">Brak danych raportu (debug)</p>
+        <p className="font-semibold">
+          Brak danych raportu (debug)
+        </p>
         <p>reportId: {String(reportId)}</p>
         <pre className="whitespace-pre-wrap rounded-xl bg-gray-100 p-3 text-xs">
           {JSON.stringify(apiDebug, null, 2)}
@@ -153,7 +182,9 @@ export default function ReportPage() {
   if (!report.metrics) {
     return (
       <div className="space-y-2 text-sm">
-        <p className="font-semibold">Raport pobrany, ale brak pola metrics (debug)</p>
+        <p className="font-semibold">
+          Raport pobrany, ale brak pola metrics (debug)
+        </p>
         <p>reportId: {String(reportId)}</p>
         <pre className="whitespace-pre-wrap rounded-xl bg-gray-100 p-3 text-xs">
           {JSON.stringify(report, null, 2)}

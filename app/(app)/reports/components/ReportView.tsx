@@ -233,7 +233,12 @@ function inRangeLabel(value?: number, p25?: number | null, p75?: number | null) 
   return "w typowym zakresie";
 }
 
-function benchToneFor(key: BenchKey, value?: number, p25?: number | null, p75?: number | null): BenchTone {
+function benchToneFor(
+  key: BenchKey,
+  value?: number,
+  p25?: number | null,
+  p75?: number | null
+): BenchTone {
   if (typeof value !== "number" || !Number.isFinite(value)) return "none";
   if (p25 == null || p75 == null) return "none";
 
@@ -312,7 +317,11 @@ export default function ReportView({
     };
   }, [benchmark, benchmarkLoading]);
 
-  function benchLinesFor(key: BenchKey, currentValue?: number, formatter: (v?: number) => string = formatNumber) {
+  function benchLinesFor(
+    key: BenchKey,
+    currentValue?: number,
+    formatter: (v?: number) => string = formatNumber
+  ) {
     const s = getBenchmarkStat(benchmark, key);
     if (!s || benchmark?.unavailable) {
       return { line1: undefined, line2: undefined, tone: "none" as BenchTone };
@@ -338,8 +347,18 @@ export default function ReportView({
 
   return (
     <div className="space-y-6">
+      {/* ===== HEADER (Insight branding) ===== */}
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-bold">{reportName ?? "Raport finansowy"}</h1>
+        <h1 className="text-2xl font-bold">Raport finansowy – DataGate Insight</h1>
+        <p className="mt-1 text-xs text-gray-400">DataGate Insight</p>
+
+        {/* zachowujemy info o raporcie (nie usuwamy słowa "Raport") */}
+        {reportName && (
+          <p className="mt-2 text-sm text-gray-600">
+            {reportName}
+          </p>
+        )}
+
         <p className="mt-1 text-sm text-gray-500">Branża: {industryLabel(industry)}</p>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -355,11 +374,17 @@ export default function ReportView({
               </option>
             ))}
           </select>
+        </div>
+      </div>
 
-          <div className="ml-auto text-sm text-gray-600">
-            <span className="font-medium">{benchMeta.title}</span>
-            <span className="ml-2 text-gray-500">{benchMeta.subtitle}</span>
-          </div>
+      {/* ===== BENCHMARK SECTION HEADER (Benchmark branding) ===== */}
+      <div className="rounded-2xl border bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold">Porównanie branżowe</h2>
+        <p className="mt-1 text-xs text-gray-400">DataGate Benchmark</p>
+
+        <div className="mt-3 text-sm text-gray-600">
+          <span className="font-medium">{benchMeta.title}</span>
+          <span className="ml-2 text-gray-500">{benchMeta.subtitle}</span>
         </div>
       </div>
 
