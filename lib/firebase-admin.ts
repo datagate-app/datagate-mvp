@@ -1,12 +1,8 @@
 import * as admin from "firebase-admin";
 
-export function getAdmin() {
-  if (!admin.apps.length) {
-    admin.initializeApp();
-  }
-
-  return {
-    adminAuth: admin.auth(),
-    adminDb: admin.firestore(),
-  };
+if (!admin.apps.length) {
+  admin.initializeApp(); // ADC z Cloud Run
 }
+
+export const adminAuth = admin.auth();
+export const adminDb = admin.firestore();
