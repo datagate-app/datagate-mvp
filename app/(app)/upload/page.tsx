@@ -4,191 +4,205 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 
-const INDUSTRIES = {
-  manufacturing: "Produkcja",
-  it: "Technologie / IT",
-  retail: "Handel",
-  services: "Usługi",
-  construction: "Budownictwo",
-} as const;
-
-type IndustryKey = keyof typeof INDUSTRIES;
-
 export default function UploadPage() {
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [file, setFile] = useState<File | null>(null);
-  const [industry, setIndustry] = useState<IndustryKey>("manufacturing");
 
   const router = useRouter();
 
-  const handleUpload = async () => {
-    if (!file) {
-      alert("Wybierz plik CSV.");
-      return;
-    }
+  const [file, setFile] = useState<File | null>(null);
+  const [industry, setIndustry] = useState("manufacturing");
+  const [loading, setLoading] = useState(false);
 
-    // MVP guard: upewnij się, że to CSV
-    const isCsv =
-      file.type === "text/csv" ||
-      file.name.toLowerCase().endsWith(".csv");
+  function downloadTemplate() {
 
-    if (!isCsv) {
-      alert("To nie wygląda na plik CSV. Zapisz plik jako CSV i spróbuj ponownie.");
-      return;
-    }
+    const csv =
+`pozycja,wartosc
+aktywa_razem,1000000
+kapital_wlasny,500000
+zobowiazania,500000`;
+
+    const blob = new Blob([csv], { type: "text/csv" });
+
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = "datagate_template.csv";
+    a.click();
+
+    window.URL.revokeObjectURL(url);
+  }
+
+  async function handleUpload() {
 
     const user = auth.currentUser;
+
     if (!user) {
       alert("Musisz być zalogowany.");
       return;
     }
 
-    if (!industry) {
-      alert("Wybierz branżę.");
+    if (!file) {
+      alert("Wybierz plik CSV.");
       return;
     }
 
-    setLoading(true);
-    setProgress(0);
-
-    let value = 0;
-    const interval = setInterval(() => {
-      value += 15;
-      if (value <= 90) setProgress(value);
-    }, 300);
-
     try {
+
+      setLoading(true);
+
+      const token = await user.getIdToken();
+
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("ownerId", user.uid);
       formData.append("industry", industry);
 
       const res = await fetch("/api/reports", {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data?.error || "Upload failed");
+        throw new Error(data?.error);
       }
 
-      clearInterval(interval);
-      setProgress(100);
+      router.push(`/reports/${data.id}`);
 
-      setTimeout(() => {
-        router.push(`/reports/${data.id}`);
-      }, 400);
     } catch (err) {
-      clearInterval(interval);
-      console.error("Upload error:", err);
-      alert("Błąd podczas przetwarzania pliku.");
+
+      console.error(err);
+      alert("Błąd uploadu");
+
+    } finally {
+
       setLoading(false);
-      setProgress(0);
+
     }
-  };
+
+  }
 
   return (
-    <div className="max-w-xl space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+
+    <div className="max-w-2xl mx-auto space-y-8">
+
+      {/* HEADER */}
+
       <div>
-        <h1 className="text-xl font-semibold">Upload raportu</h1>
-        <p className="mt-2 text-gray-600">
-          Wgraj plik <span className="font-medium">CSV</span> (dane z bilansu).
+
+        <h1 className="text-3xl font-bold">
+          Upload bilansu
+        </h1>
+
+        <p className="text-gray-600 mt-2">
+          Wgraj plik CSV z bilansem firmy, a DataGate automatycznie
+          obliczy wskaźniki finansowe i wygeneruje raport.
         </p>
+
       </div>
 
-      {/* SZABLON */}
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900">
-              Szablon pliku
-            </h3>
-            <p className="mt-1 text-xs text-slate-600">
-              Pobierz szablon w formacie{" "}
-              <span className="font-medium">.xlsx</span>, uzupełnij dane, a
-              następnie zapisz go jako{" "}
-              <span className="font-medium">CSV</span> przed wgraniem.
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Excel: <span className="font-medium">Plik → Zapisz jako → CSV (UTF-8)</span>
-            </p>
+      {/* CARD */}
+
+      <div className="bg-white border rounded-2xl p-8 space-y-6 shadow-sm">
+
+        {/* INDUSTRY */}
+
+        <div>
+
+          <label className="text-sm font-medium text-gray-600">
+            Branża
+          </label>
+
+          <select
+            value={industry}
+            onChange={(e) => setIndustry(e.target.value)}
+            className="mt-2 w-full border rounded-lg px-3 py-2"
+          >
+            <option value="manufacturing">Produkcja</option>
+            <option value="it">IT</option>
+            <option value="retail">Handel</option>
+            <option value="services">Usługi</option>
+            <option value="construction">Budownictwo</option>
+          </select>
+
+        </div>
+
+        {/* FILE */}
+
+        <div>
+
+          <label className="text-sm font-medium text-gray-600">
+            Plik CSV
+          </label>
+
+          <div className="mt-2 border-2 border-dashed rounded-xl p-6 text-center">
+
+            <input
+              type="file"
+              accept=".csv"
+              onChange={(e) =>
+                setFile(e.target.files?.[0] ?? null)
+              }
+              className="mx-auto"
+            />
+
+            {file && (
+              <p className="text-sm text-gray-600 mt-2">
+                Wybrano: <strong>{file.name}</strong>
+              </p>
+            )}
+
           </div>
 
-          <a
-            href="/DataGate - szablon.xlsx"
-            download
-            className="h-10 rounded-lg px-4 text-sm font-medium text-white transition"
-            style={{ backgroundColor: "#0d1a34" }}
+        </div>
+
+        {/* BUTTONS */}
+
+        <div className="flex gap-4">
+
+          <button
+            onClick={handleUpload}
+            disabled={loading}
+            className={`flex-1 rounded-lg px-4 py-2 text-white font-medium ${
+              loading
+                ? "bg-gray-400"
+                : "bg-black hover:bg-gray-800"
+            }`}
+          >
+            {loading ? "Generowanie..." : "Wgraj i wygeneruj raport"}
+          </button>
+
+          <button
+            onClick={downloadTemplate}
+            className="border rounded-lg px-4 py-2 hover:bg-gray-100"
           >
             Pobierz szablon
-          </a>
+          </button>
+
         </div>
+
       </div>
 
-      {/* Branża */}
-      <div>
-        <label className="block text-sm text-gray-500">Branża</label>
-        <select
-          value={industry}
-          onChange={(e) => setIndustry(e.target.value as IndustryKey)}
-          disabled={loading}
-          className="mt-1 w-full rounded border border-gray-300 p-2"
-        >
-          {Object.entries(INDUSTRIES).map(([key, label]) => (
-            <option key={key} value={key}>
-              {label}
-            </option>
-          ))}
-        </select>
+      {/* INFO */}
+
+      <div className="text-sm text-gray-500">
+
+        <p>Szablon CSV powinien zawierać kolumny:</p>
+
+        <pre className="bg-gray-100 p-4 rounded mt-2">
+pozycja,wartosc
+aktywa_razem,1000000
+kapital_wlasny,500000
+zobowiazania,500000
+        </pre>
+
       </div>
 
-      {/* Plik */}
-      <div>
-        <label className="block text-sm text-gray-500">Plik CSV</label>
-        <input
-          type="file"
-          accept=".csv"
-          disabled={loading}
-          className="mt-1 block w-full rounded border border-gray-300 p-2"
-          onChange={(e) => {
-            const selectedFile = e.target.files?.[0] ?? null;
-            setFile(selectedFile);
-          }}
-        />
-
-        {file && (
-          <p className="mt-2 text-xs text-gray-600">
-            Wybrany plik: <span className="font-medium">{file.name}</span>
-          </p>
-        )}
-      </div>
-
-      <button
-        onClick={handleUpload}
-        disabled={loading || !file}
-        className="h-10 rounded-lg px-4 text-sm font-medium text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
-        style={{ backgroundColor: "#0d1a34" }}
-      >
-        {loading ? "Analizuję..." : "Upload & Analizuj"}
-      </button>
-
-      {loading && (
-        <div>
-          <div className="h-2 w-full rounded bg-gray-200">
-            <div
-              className="h-2 rounded bg-black transition-all"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-
-          <p className="mt-2 text-sm text-gray-600">
-            Analiza pliku... {progress}%
-          </p>
-        </div>
-      )}
     </div>
+
   );
 }

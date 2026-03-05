@@ -8,8 +8,12 @@ import { calculateMetrics } from "@/lib/parser/calculateMetrics";
 /* =====================================================
    AUTH HELPER
 ===================================================== */
+
 async function verifyAuth(req: Request): Promise<string> {
-  const authHeader = req.headers.get("authorization");
+
+  const authHeader =
+    req.headers.get("authorization") ||
+    req.headers.get("Authorization");
 
   console.log("AUTH HEADER:", authHeader ? "present" : "missing");
 
@@ -18,39 +22,50 @@ async function verifyAuth(req: Request): Promise<string> {
     throw new Error("Unauthorized");
   }
 
-  const token = authHeader.split("Bearer ")[1];
+  const token = authHeader.replace("Bearer ", "");
 
   try {
+
     const decoded = await adminAuth.verifyIdToken(token);
 
-    console.log("Token verified. UID:", decoded.uid);
+    console.log("Token verified UID:", decoded.uid);
 
     return decoded.uid;
+
   } catch (err) {
+
     console.error("verifyIdToken failed:", err);
+
     throw new Error("Unauthorized");
+
   }
+
 }
 
 /* =====================================================
-   SIMPLE IN-MEMORY CACHE (MVP SHIELD)
+   SIMPLE CACHE (MVP SHIELD)
 ===================================================== */
-type CacheEntry = { ts: number; data: any };
+
+type CacheEntry = {
+  ts: number;
+  data: any;
+};
 
 const __reportsCache: Map<string, CacheEntry> =
   (globalThis as any).__reportsCache ??
-  ((globalThis as any).__reportsCache = new Map<string, CacheEntry>());
+  ((globalThis as any).__reportsCache = new Map());
 
-const CACHE_TTL_MS = 15_000;
+const CACHE_TTL_MS = 15000;
 
 /* =====================================================
-   QUOTA COOLDOWN (MVP SHIELD)
+   QUOTA COOLDOWN
 ===================================================== */
+
 const __quotaCooldown: { until: number; lastDetails?: string } =
   (globalThis as any).__quotaCooldown ??
-  ((globalThis as any).__quotaCooldown = { until: 0, lastDetails: "" });
+  ((globalThis as any).__quotaCooldown = { until: 0 });
 
-const QUOTA_COOLDOWN_MS = 60_000;
+const QUOTA_COOLDOWN_MS = 60000;
 
 function isQuotaError(err: any) {
   const msg = String(err?.details || err?.message || "").toLowerCase();
@@ -58,35 +73,45 @@ function isQuotaError(err: any) {
 }
 
 function quotaResponse(extra?: { details?: string }) {
+
   const retryAfterMs = Math.max(0, __quotaCooldown.until - Date.now());
 
   return NextResponse.json(
     {
       error: "Quota exceeded",
-      hint:
-        "Przekroczono limit Firestore (plan darmowy / zbyt dużo odczytów). Spróbuj ponownie za chwilę.",
       retryAfterMs,
       details: extra?.details ?? __quotaCooldown.lastDetails ?? null,
     },
     { status: 429 }
   );
+
 }
 
 /* =====================================================
    POST → CREATE REPORT
 ===================================================== */
+
 export async function POST(req: Request) {
+
   try {
+
     const uid = await verifyAuth(req);
+
     const contentType = req.headers.get("content-type");
 
-    /* ---------- DEMO JSON MODE ---------- */
+    /* ---------------- JSON DEMO MODE ---------------- */
+
     if (contentType?.includes("application/json")) {
+
       const body = await req.json();
+
       const { name, industry, metrics } = body;
 
       if (!metrics) {
-        return NextResponse.json({ error: "Brak danych" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Brak danych" },
+          { status: 400 }
+        );
       }
 
       const docRef = await adminDb.collection("reports").add({
@@ -105,30 +130,40 @@ export async function POST(req: Request) {
         name: name || "Raport z demo",
         status: "ready",
       });
+
     }
 
-    /* ---------- CSV MODE ---------- */
+    /* ---------------- CSV MODE ---------------- */
+
     const formData = await req.formData();
+
     const file = formData.get("file") as File | null;
     const industry = formData.get("industry") as string | null;
 
     if (!file) {
-      return NextResponse.json({ error: "Brak pliku" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Brak pliku" },
+        { status: 400 }
+      );
     }
 
     const fileName = file.name || "Nowy raport";
+
     const isCsv =
-      file.type === "text/csv" || fileName.toLowerCase().endsWith(".csv");
+      file.type === "text/csv" ||
+      fileName.toLowerCase().endsWith(".csv");
 
     if (!isCsv) {
       return NextResponse.json(
-        { error: "Nieprawidłowy format. Wgraj plik CSV." },
+        { error: "Nieprawidłowy format. Wgraj CSV." },
         { status: 400 }
       );
     }
 
     const csvText = await file.text();
+
     const bilansValues = parseBilansCsv(csvText);
+
     const metrics = calculateMetrics(bilansValues);
 
     const docRef = await adminDb.collection("reports").add({
@@ -147,37 +182,51 @@ export async function POST(req: Request) {
       name: fileName,
       status: "ready",
     });
+
   } catch (err: any) {
+
     if (err?.message === "Unauthorized") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
     console.error("POST reports error:", err);
 
     if (isQuotaError(err)) {
+
       __quotaCooldown.until = Date.now() + QUOTA_COOLDOWN_MS;
+
       __quotaCooldown.lastDetails =
         err?.details || err?.message || String(err);
 
-      return quotaResponse({ details: __quotaCooldown.lastDetails });
+      return quotaResponse({
+        details: __quotaCooldown.lastDetails,
+      });
+
     }
 
     return NextResponse.json(
       {
         error: "Błąd zapisu raportu",
-        details: err?.details || err?.message || String(err),
-        code: err?.code ?? null,
+        details: err?.message || String(err),
       },
       { status: 500 }
     );
+
   }
+
 }
 
 /* =====================================================
-   GET → FETCH REPORTS FOR LOGGED USER
+   GET → FETCH REPORTS
 ===================================================== */
+
 export async function GET(req: Request) {
+
   try {
+
     const uid = await verifyAuth(req);
 
     if (Date.now() < __quotaCooldown.until) {
@@ -185,6 +234,7 @@ export async function GET(req: Request) {
     }
 
     const cached = __reportsCache.get(uid);
+
     if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
       return NextResponse.json(cached.data);
     }
@@ -201,31 +251,32 @@ export async function GET(req: Request) {
       ...doc.data(),
     }));
 
-    __reportsCache.set(uid, { ts: Date.now(), data: reports });
+    __reportsCache.set(uid, {
+      ts: Date.now(),
+      data: reports,
+    });
 
     return NextResponse.json(reports);
+
   } catch (err: any) {
+
     if (err?.message === "Unauthorized") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
     console.error("GET reports error:", err);
 
-    if (isQuotaError(err)) {
-      __quotaCooldown.until = Date.now() + QUOTA_COOLDOWN_MS;
-      __quotaCooldown.lastDetails =
-        err?.details || err?.message || String(err);
-
-      return quotaResponse({ details: __quotaCooldown.lastDetails });
-    }
-
     return NextResponse.json(
       {
         error: "GET reports failed",
-        details: err?.details || err?.message || String(err),
-        code: err?.code ?? null,
+        details: err?.message || String(err),
       },
       { status: 500 }
     );
+
   }
+
 }

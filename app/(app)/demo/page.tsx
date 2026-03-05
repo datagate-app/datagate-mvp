@@ -26,6 +26,7 @@ export default function InteractiveDemoPage() {
   const [loading, setLoading] = useState(false);
 
   async function handleGenerate() {
+
     const user = auth.currentUser;
 
     if (!user) {
@@ -73,11 +74,17 @@ export default function InteractiveDemoPage() {
     };
 
     try {
+
+      // 🔑 pobranie tokena firebase
+      const token = await user.getIdToken(true);
+
       const res = await fetch("/api/reports", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
-          ownerId: user.uid,
           name: "Raport – Twoje dane",
           industry,
           metrics,
@@ -90,16 +97,22 @@ export default function InteractiveDemoPage() {
         throw new Error("Błąd zapisu");
       }
 
-      // 🔥 redirect do prawdziwego raportu
       router.push(`/reports/${data.id}`);
+
     } catch (err) {
+
+      console.error(err);
+
       alert("Wystąpił błąd podczas zapisu raportu.");
+
       setLoading(false);
+
     }
   }
 
   return (
     <div className="space-y-6 max-w-xl">
+
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
         <h1 className="text-2xl font-bold">
           Wygeneruj raport z własnych danych
@@ -110,10 +123,12 @@ export default function InteractiveDemoPage() {
       </div>
 
       <div className="rounded-2xl border bg-white p-6 shadow-sm space-y-4">
+
         <div>
           <label className="block text-sm text-gray-500">
             Branża
           </label>
+
           <select
             value={industry}
             onChange={(e) =>
@@ -121,11 +136,13 @@ export default function InteractiveDemoPage() {
             }
             className="mt-1 w-full rounded-lg border px-3 py-2"
           >
+
             {Object.entries(INDUSTRIES).map(([key, label]) => (
               <option key={key} value={key}>
                 {label}
               </option>
             ))}
+
           </select>
         </div>
 
@@ -133,6 +150,7 @@ export default function InteractiveDemoPage() {
           <label className="block text-sm text-gray-500">
             Aktywa razem (w tys. zł)
           </label>
+
           <input
             type="number"
             value={aktywa}
@@ -145,6 +163,7 @@ export default function InteractiveDemoPage() {
           <label className="block text-sm text-gray-500">
             Kapitał własny (w tys. zł)
           </label>
+
           <input
             type="number"
             value={kapital}
@@ -162,8 +181,11 @@ export default function InteractiveDemoPage() {
               : "bg-black hover:bg-gray-800"
           }`}
         >
+
           {loading ? "Generowanie..." : "Generuj raport"}
+
         </button>
+
       </div>
     </div>
   );
