@@ -26,20 +26,40 @@ export default function AdminPage() {
   const [industryStats, setIndustryStats] = useState<IndustryStat[]>([]);
   const [meUid, setMeUid] = useState<string | null>(null);
 
+  const getAuthHeaders = async () => {
+    const token = await auth.currentUser?.getIdToken();
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
   const loadUsers = async (uid: string) => {
-    const res = await fetch(`/api/admin/users?uid=${uid}`);
+    const headers = await getAuthHeaders();
+
+    const res = await fetch(`/api/admin/users?uid=${uid}`, {
+      headers,
+    });
+
     if (!res.ok) {
       setDenied(true);
       setLoading(false);
       return;
     }
+
     const data = await res.json();
     setUsers(data);
   };
 
   const loadIndustryStats = async () => {
-    const res = await fetch("/api/admin/industry-stats");
+    const headers = await getAuthHeaders();
+
+    const res = await fetch("/api/admin/industry-stats", {
+      headers,
+    });
+
     if (!res.ok) return;
+
     const data = await res.json();
     setIndustryStats(data);
   };
@@ -56,6 +76,7 @@ export default function AdminPage() {
 
       // szybki check roli (UX)
       const snap = await getDoc(doc(db, "users", user.uid));
+
       if (!snap.exists() || snap.data()?.role !== "admin") {
         setDenied(true);
         setLoading(false);
@@ -79,9 +100,11 @@ export default function AdminPage() {
   ) => {
     if (!meUid) return;
 
+    const headers = await getAuthHeaders();
+
     await fetch("/api/admin/users", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         adminUid: meUid,
         targetUid,
@@ -99,7 +122,6 @@ export default function AdminPage() {
   return (
     <div className="space-y-6 p-6">
 
-      {/* HEADER */}
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
         <h1 className="text-2xl font-bold">Panel admina</h1>
         <p className="mt-1 text-sm text-gray-500">
@@ -107,7 +129,6 @@ export default function AdminPage() {
         </p>
       </div>
 
-      {/* INDUSTRY STATS */}
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
         <h2 className="mb-4 text-lg font-semibold">
           Raporty według branży
@@ -132,7 +153,6 @@ export default function AdminPage() {
         )}
       </div>
 
-      {/* USERS LIST */}
       <div className="rounded-2xl border bg-white p-4 shadow-sm">
         <div className="divide-y">
           {users.map((u) => (

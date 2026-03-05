@@ -1,25 +1,15 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  updateDoc,
-  where,
-} from "firebase/firestore";
+import { adminDb } from "@/lib/firebase-admin";
 
 async function verifyAdminByUid(uid: string) {
-  const snap = await getDoc(doc(db, "users", uid));
-  if (!snap.exists()) return false;
+  const snap = await adminDb.collection("users").doc(uid).get();
+  if (!snap.exists) return false;
   return snap.data()?.role === "admin";
 }
 
 /**
  * GET /api/admin/users?uid=...
- * - zwraca listę userów z kolekcji "users"
+ * - zwraca listę userów
  * - dodaje reportsCount
  */
 export async function GET(req: Request) {
@@ -36,22 +26,33 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Brak dostępu" }, { status: 403 });
     }
 
-    const usersSnap = await getDocs(collection(db, "users"));
-    const users = [];
+    // pobierz userów
+    const usersSnap = await adminDb.collection("users").get();
+
+    // pobierz wszystkie raporty
+    const reportsSnap = await adminDb.collection("reports").get();
+
+    // policz raporty per ownerId
+    const reportsCountMap: Record<string, number> = {};
+
+    for (const r of reportsSnap.docs) {
+      const ownerId = r.data().ownerId;
+      if (!ownerId) continue;
+
+      reportsCountMap[ownerId] = (reportsCountMap[ownerId] || 0) + 1;
+    }
+
+    const users: any[] = [];
 
     for (const u of usersSnap.docs) {
-      const reportsSnap = await getDocs(
-        query(collection(db, "reports"), where("ownerId", "==", u.id))
-      );
-
-      const data = u.data() as any;
+      const data = u.data();
 
       users.push({
         uid: u.id,
         email: data.email ?? "",
         role: data.role ?? "user",
         disabled: !!data.disabled,
-        reportsCount: reportsSnap.size,
+        reportsCount: reportsCountMap[u.id] ?? 0,
       });
     }
 
@@ -81,30 +82,33 @@ export async function PATCH(req: Request) {
     }
 
     if (action === "toggle-disable") {
-      const userRef = doc(db, "users", targetUid);
-      const snap = await getDoc(userRef);
-      if (!snap.exists()) {
+      const userRef = adminDb.collection("users").doc(targetUid);
+      const snap = await userRef.get();
+
+      if (!snap.exists) {
         return NextResponse.json({ error: "User nie istnieje" }, { status: 404 });
       }
 
       const curr = snap.data() as any;
-      await updateDoc(userRef, { disabled: !curr.disabled });
+
+      await userRef.update({
+        disabled: !curr.disabled,
+      });
 
       return NextResponse.json({ success: true });
     }
 
     if (action === "delete-user") {
-      // usuń raporty usera
-      const reportsSnap = await getDocs(
-        query(collection(db, "reports"), where("ownerId", "==", targetUid))
-      );
+      const reportsSnap = await adminDb
+        .collection("reports")
+        .where("ownerId", "==", targetUid)
+        .get();
 
       for (const r of reportsSnap.docs) {
-        await deleteDoc(r.ref);
+        await r.ref.delete();
       }
 
-      // usuń doc usera
-      await deleteDoc(doc(db, "users", targetUid));
+      await adminDb.collection("users").doc(targetUid).delete();
 
       return NextResponse.json({ success: true });
     }

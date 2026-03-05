@@ -2,25 +2,19 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
+import { verifyAuth } from "@/lib/verifyAuth";
 
 export async function GET(
   req: Request,
   context: { params: Promise<{ reportId: string }> }
 ) {
   try {
+    const uid = await verifyAuth(req);
+
     const { reportId } = await context.params;
 
     console.log("REPORT ID:", reportId);
-
-    const url = new URL(req.url);
-    const ownerId = url.searchParams.get("ownerId");
-
-    if (!ownerId) {
-      return NextResponse.json(
-        { error: "Missing ownerId" },
-        { status: 400 }
-      );
-    }
+    console.log("USER UID:", uid);
 
     if (!reportId) {
       return NextResponse.json(
@@ -43,18 +37,34 @@ export async function GET(
 
     const data = snap.data() as any;
 
-    if (data.ownerId !== ownerId) {
+    // sprawdzamy czy raport należy do użytkownika
+    if (data.ownerId !== uid) {
       return NextResponse.json(
         { error: "Forbidden" },
         { status: 403 }
       );
     }
 
-    return NextResponse.json({ id: snap.id, ...data });
+    return NextResponse.json({
+      id: snap.id,
+      ...data,
+    });
+
   } catch (e: any) {
     console.error("GET report error:", e);
+
+    if (e?.message === "Unauthorized") {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     return NextResponse.json(
-      { error: "Failed to load report", details: e?.message ?? String(e) },
+      {
+        error: "Failed to load report",
+        details: e?.message ?? String(e),
+      },
       { status: 500 }
     );
   }
