@@ -18,43 +18,53 @@ export default function DashboardPage() {
   const [uid, setUid] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
 
-  // ✅ blokuje podwójny fetch w dev / strict mode
   const didFetchRef = useRef(false);
-
-  // ✅ antyspam na ręczne odświeżanie
   const lastManualRefreshRef = useRef<number>(0);
 
-  const fetchReports = useCallback(async (ownerId: string, signal?: AbortSignal) => {
-    setError("");
+  const fetchReports = useCallback(
+    async (ownerId: string, signal?: AbortSignal) => {
+      setError("");
 
-    const res = await fetch(`/api/reports?ownerId=${ownerId}`, {
-      cache: "no-store",
-      signal,
-    });
+      const user = auth.currentUser;
+      if (!user) {
+        setError("Brak autoryzacji.");
+        return;
+      }
 
-    // quota / throttling
-    if (res.status === 429) {
-      const data = await res.json().catch(() => null);
-      setError(
-        data?.hint ||
-          "Przekroczono limit zapytań (quota). Odśwież za chwilę."
-      );
-      return;
-    }
+      const token = await user.getIdToken();
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      setError(
-        data?.details ||
-          data?.error ||
-          "Nie udało się pobrać raportów. Spróbuj odświeżyć."
-      );
-      return;
-    }
+      const res = await fetch(`/api/reports?ownerId=${ownerId}`, {
+        cache: "no-store",
+        signal,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    const data = await res.json().catch(() => []);
-    setReports(Array.isArray(data) ? data : []);
-  }, []);
+      if (res.status === 429) {
+        const data = await res.json().catch(() => null);
+        setError(
+          data?.hint ||
+            "Przekroczono limit zapytań (quota). Odśwież za chwilę."
+        );
+        return;
+      }
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setError(
+          data?.details ||
+            data?.error ||
+            "Nie udało się pobrać raportów. Spróbuj odświeżyć."
+        );
+        return;
+      }
+
+      const data = await res.json().catch(() => []);
+      setReports(Array.isArray(data) ? data : []);
+    },
+    []
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -69,18 +79,17 @@ export default function DashboardPage() {
 
       setUid(user.uid);
 
-      // ✅ ważne: tylko 1 fetch na mount (dev strict mode potrafi odpalić callback 2x)
       if (didFetchRef.current) {
         setLoading(false);
         return;
       }
+
       didFetchRef.current = true;
 
       setLoading(true);
       try {
         await fetchReports(user.uid, controller.signal);
       } catch (e: any) {
-        // jeśli abort – ignorujemy
         if (e?.name !== "AbortError") {
           setError("Błąd połączenia. Spróbuj ponownie.");
         }
@@ -100,7 +109,6 @@ export default function DashboardPage() {
   const handleRefresh = async () => {
     if (!uid) return;
 
-    // ✅ blokada: nie pozwól klikać 20x/sek
     const now = Date.now();
     if (now - lastManualRefreshRef.current < 2000) return;
     lastManualRefreshRef.current = now;
@@ -224,7 +232,9 @@ export default function DashboardPage() {
                   <p className="font-medium text-gray-900">{report.name}</p>
 
                   {report.status === "processing" && (
-                    <p className="text-xs text-orange-500">Analiza w toku...</p>
+                    <p className="text-xs text-orange-500">
+                      Analiza w toku...
+                    </p>
                   )}
 
                   {report.status === "ready" && (
@@ -232,7 +242,9 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                <span className="text-sm text-gray-500">{report.date}</span>
+                <span className="text-sm text-gray-500">
+                  {report.date}
+                </span>
               </Link>
             ))}
           </div>

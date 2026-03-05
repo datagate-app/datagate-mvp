@@ -11,7 +11,10 @@ import { calculateMetrics } from "@/lib/parser/calculateMetrics";
 async function verifyAuth(req: Request): Promise<string> {
   const authHeader = req.headers.get("authorization");
 
+  console.log("AUTH HEADER:", authHeader ? "present" : "missing");
+
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    console.error("Authorization header missing or invalid");
     throw new Error("Unauthorized");
   }
 
@@ -19,8 +22,12 @@ async function verifyAuth(req: Request): Promise<string> {
 
   try {
     const decoded = await adminAuth.verifyIdToken(token);
+
+    console.log("Token verified. UID:", decoded.uid);
+
     return decoded.uid;
-  } catch {
+  } catch (err) {
+    console.error("verifyIdToken failed:", err);
     throw new Error("Unauthorized");
   }
 }
