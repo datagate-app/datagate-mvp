@@ -2,6 +2,13 @@ import Sidebar from "@/components/sidebar";
 import { AuthGuard } from "@/components/auth-guard";
 import { UserMenu } from "@/components/user-menu";
 
+export const metadata = {
+  title: "DataGate",
+  icons: {
+    icon: "/favicon.svg",
+  },
+};
+
 type Props = {
   children: React.ReactNode;
 };
