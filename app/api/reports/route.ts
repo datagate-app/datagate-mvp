@@ -10,7 +10,6 @@ import { calculateMetrics } from "@/lib/parser/calculateMetrics";
 ===================================================== */
 
 async function verifyAuth(req: Request): Promise<string> {
-
   const authHeader =
     req.headers.get("authorization") ||
     req.headers.get("Authorization");
@@ -25,21 +24,15 @@ async function verifyAuth(req: Request): Promise<string> {
   const token = authHeader.replace("Bearer ", "");
 
   try {
-
     const decoded = await adminAuth.verifyIdToken(token);
 
     console.log("Token verified UID:", decoded.uid);
 
     return decoded.uid;
-
   } catch (err) {
-
     console.error("verifyIdToken failed:", err);
-
     throw new Error("Unauthorized");
-
   }
-
 }
 
 /* =====================================================
@@ -73,7 +66,6 @@ function isQuotaError(err: any) {
 }
 
 function quotaResponse(extra?: { details?: string }) {
-
   const retryAfterMs = Math.max(0, __quotaCooldown.until - Date.now());
 
   return NextResponse.json(
@@ -84,7 +76,17 @@ function quotaResponse(extra?: { details?: string }) {
     },
     { status: 429 }
   );
+}
 
+/* =====================================================
+   HELPERS
+===================================================== */
+
+function normalizeReportName(value: unknown, fallback: string) {
+  if (typeof value !== "string") return fallback;
+
+  const trimmed = value.trim();
+  return trimmed || fallback;
 }
 
 /* =====================================================
@@ -92,53 +94,69 @@ function quotaResponse(extra?: { details?: string }) {
 ===================================================== */
 
 export async function POST(req: Request) {
-
   try {
-
     const uid = await verifyAuth(req);
 
-    const contentType = req.headers.get("content-type");
+    const contentType = req.headers.get("content-type") || "";
 
-    /* ---------------- JSON DEMO MODE ---------------- */
+    /* ---------------- JSON MODE (DEMO / MANUAL ONLINE) ---------------- */
 
-    if (contentType?.includes("application/json")) {
-
+    if (contentType.includes("application/json")) {
       const body = await req.json();
 
-      const { name, industry, metrics } = body;
+      const {
+        name,
+        industry,
+        metrics,
+        rawBalanceData,
+        inputMode,
+      } = body ?? {};
 
-      if (!metrics) {
+      if (!metrics || typeof metrics !== "object") {
         return NextResponse.json(
-          { error: "Brak danych" },
+          { error: "Brak poprawnych danych metrics." },
           { status: 400 }
         );
       }
 
-      const docRef = await adminDb.collection("reports").add({
-        name: name || "Raport z demo",
+      const finalName = normalizeReportName(name, "Raport");
+
+      const payload: Record<string, any> = {
+        name: finalName,
         ownerId: uid,
         industry: industry || null,
         status: "ready",
         createdAt: new Date(),
         metrics,
-      });
+      };
+
+      if (rawBalanceData && typeof rawBalanceData === "object") {
+        payload.rawBalanceData = rawBalanceData;
+      }
+
+      if (typeof inputMode === "string" && inputMode.trim()) {
+        payload.inputMode = inputMode.trim();
+      }
+
+      const docRef = await adminDb.collection("reports").add(payload);
 
       __reportsCache.delete(uid);
 
       return NextResponse.json({
         id: docRef.id,
-        name: name || "Raport z demo",
+        name: finalName,
         status: "ready",
       });
-
     }
 
-    /* ---------------- CSV MODE ---------------- */
+    /* ---------------- FILE IMPORT MODE ---------------- */
 
     const formData = await req.formData();
 
     const file = formData.get("file") as File | null;
     const industry = formData.get("industry") as string | null;
+    const customName = formData.get("name");
+    const inputMode = formData.get("inputMode");
 
     if (!file) {
       return NextResponse.json(
@@ -148,6 +166,10 @@ export async function POST(req: Request) {
     }
 
     const fileName = file.name || "Nowy raport";
+    const finalName = normalizeReportName(
+      customName,
+      fileName.replace(/\.[^/.]+$/, "")
+    );
 
     const isCsv =
       file.type === "text/csv" ||
@@ -162,29 +184,41 @@ export async function POST(req: Request) {
 
     const csvText = await file.text();
 
-    const bilansValues = parseBilansCsv(csvText);
+    if (!csvText.trim()) {
+      return NextResponse.json(
+        { error: "Plik jest pusty." },
+        { status: 400 }
+      );
+    }
 
+    const bilansValues = parseBilansCsv(csvText);
     const metrics = calculateMetrics(bilansValues);
 
-    const docRef = await adminDb.collection("reports").add({
-      name: fileName,
+    const payload: Record<string, any> = {
+      name: finalName,
       ownerId: uid,
       industry: industry || null,
       status: "ready",
       createdAt: new Date(),
       metrics,
-    });
+    };
+
+    if (typeof inputMode === "string" && inputMode.trim()) {
+      payload.inputMode = inputMode.trim();
+    } else {
+      payload.inputMode = "import_csv";
+    }
+
+    const docRef = await adminDb.collection("reports").add(payload);
 
     __reportsCache.delete(uid);
 
     return NextResponse.json({
       id: docRef.id,
-      name: fileName,
+      name: finalName,
       status: "ready",
     });
-
   } catch (err: any) {
-
     if (err?.message === "Unauthorized") {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -195,7 +229,6 @@ export async function POST(req: Request) {
     console.error("POST reports error:", err);
 
     if (isQuotaError(err)) {
-
       __quotaCooldown.until = Date.now() + QUOTA_COOLDOWN_MS;
 
       __quotaCooldown.lastDetails =
@@ -204,7 +237,6 @@ export async function POST(req: Request) {
       return quotaResponse({
         details: __quotaCooldown.lastDetails,
       });
-
     }
 
     return NextResponse.json(
@@ -214,9 +246,7 @@ export async function POST(req: Request) {
       },
       { status: 500 }
     );
-
   }
-
 }
 
 /* =====================================================
@@ -224,9 +254,7 @@ export async function POST(req: Request) {
 ===================================================== */
 
 export async function GET(req: Request) {
-
   try {
-
     const uid = await verifyAuth(req);
 
     if (Date.now() < __quotaCooldown.until) {
@@ -257,9 +285,7 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json(reports);
-
   } catch (err: any) {
-
     if (err?.message === "Unauthorized") {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -276,7 +302,5 @@ export async function GET(req: Request) {
       },
       { status: 500 }
     );
-
   }
-
 }

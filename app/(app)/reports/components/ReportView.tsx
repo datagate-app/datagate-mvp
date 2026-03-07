@@ -1,14 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Metrics, SinglePeriodMetrics, PeriodKey } from "@/lib/types/metrics";
+import type {
+  Metrics,
+  SinglePeriodMetrics,
+  PeriodKey,
+} from "@/lib/types/metrics";
 import { INDUSTRIES } from "@/lib/config/industries";
 
 /* ================= BENCHMARK TYPES ================= */
 
 type BenchmarkResponse = {
   industry: string;
-  period: string; // np. "t0"
+  period: string;
   n: number;
   stats: Record<
     string,
@@ -54,8 +58,6 @@ type MetricCardProps = {
   change?: string;
   changeColor?: ChangeColor;
   trend?: number[];
-
-  // benchmark (opcjonalnie)
   benchmarkLine1?: string;
   benchmarkLine2?: string;
   benchmarkTone?: BenchTone;
@@ -106,7 +108,9 @@ function MetricCard({
 
       {(benchmarkLine1 || benchmarkLine2) && (
         <div className="mt-3 rounded-xl bg-gray-50 p-3">
-          {benchmarkLine1 && <p className="text-xs text-gray-600">{benchmarkLine1}</p>}
+          {benchmarkLine1 && (
+            <p className="text-xs text-gray-600">{benchmarkLine1}</p>
+          )}
 
           {benchmarkLine2 && (
             <div className="mt-2">
@@ -127,6 +131,22 @@ function MetricCard({
 
 /* ================= HELPERS ================= */
 
+const PERIOD_LABELS: Record<PeriodKey, string> = {
+  tMinus2: "t-2",
+  tMinus1: "t-1",
+  t0: "t0",
+  t1: "t1",
+  t2: "t2",
+  t3: "t3",
+  t4: "t4",
+  t5: "t5",
+  t6: "t6",
+};
+
+function getPeriodLabel(period: string) {
+  return (PERIOD_LABELS as Record<string, string>)[period] ?? period;
+}
+
 function formatCurrency(value?: number) {
   return `${((value ?? 0) * 1000).toLocaleString("pl-PL")} zł`;
 }
@@ -139,11 +159,18 @@ function formatNumber(value?: number) {
   return (value ?? 0).toFixed(2);
 }
 
-function buildTrend(metrics: Metrics, key: keyof SinglePeriodMetrics, periods: readonly PeriodKey[]) {
+function buildTrend(
+  metrics: Metrics,
+  key: keyof SinglePeriodMetrics,
+  periods: readonly PeriodKey[]
+) {
   return periods.map((p) => metrics[p]?.[key] ?? 0);
 }
 
-function comparePeriods(current?: number, prev?: number): { text: string; color: ChangeColor } {
+function comparePeriods(
+  current?: number,
+  prev?: number
+): { text: string; color: ChangeColor } {
   if (prev === undefined || prev === null) {
     return { text: "brak danych", color: "gray" };
   }
@@ -208,9 +235,17 @@ function getLeverageColor(value?: number): "green" | "yellow" | "red" {
 
 /* ===== benchmark helpers ===== */
 
-type BenchKey = "debtRatio" | "equityRatio" | "leverage" | "debtToEquity" | "solvencyRatio";
+type BenchKey =
+  | "debtRatio"
+  | "equityRatio"
+  | "leverage"
+  | "debtToEquity"
+  | "solvencyRatio";
 
-const BENCH_DIRECTION: Record<BenchKey, "higherIsBetter" | "lowerIsBetter"> = {
+const BENCH_DIRECTION: Record<
+  BenchKey,
+  "higherIsBetter" | "lowerIsBetter"
+> = {
   debtRatio: "lowerIsBetter",
   equityRatio: "higherIsBetter",
   leverage: "lowerIsBetter",
@@ -218,13 +253,20 @@ const BENCH_DIRECTION: Record<BenchKey, "higherIsBetter" | "lowerIsBetter"> = {
   solvencyRatio: "higherIsBetter",
 };
 
-function getBenchmarkStat(benchmark: BenchmarkResponse | null | undefined, key: string) {
+function getBenchmarkStat(
+  benchmark: BenchmarkResponse | null | undefined,
+  key: string
+) {
   const s = benchmark?.stats?.[key];
   if (!s) return null;
   return s;
 }
 
-function inRangeLabel(value?: number, p25?: number | null, p75?: number | null) {
+function inRangeLabel(
+  value?: number,
+  p25?: number | null,
+  p75?: number | null
+) {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
   if (p25 == null || p75 == null) return null;
 
@@ -242,7 +284,6 @@ function benchToneFor(
   if (typeof value !== "number" || !Number.isFinite(value)) return "none";
   if (p25 == null || p75 == null) return "none";
 
-  // w typowym zakresie
   if (value >= p25 && value <= p75) return "mid";
 
   const dir = BENCH_DIRECTION[key];
@@ -269,7 +310,6 @@ interface ReportViewProps {
   metrics: Metrics;
   reportName?: string;
   industry?: string;
-
   benchmark?: BenchmarkResponse | null;
   benchmarkLoading?: boolean;
 }
@@ -281,7 +321,17 @@ export default function ReportView({
   benchmark,
   benchmarkLoading,
 }: ReportViewProps) {
-  const periods: PeriodKey[] = ["tMinus2", "tMinus1", "t0", "t1", "t2", "t3", "t4", "t5", "t6"];
+  const periods: PeriodKey[] = [
+    "tMinus2",
+    "tMinus1",
+    "t0",
+    "t1",
+    "t2",
+    "t3",
+    "t4",
+    "t5",
+    "t6",
+  ];
 
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodKey>("t0");
 
@@ -301,19 +351,36 @@ export default function ReportView({
       debtRatio: comparePeriods(current.debtRatio, prev?.debtRatio),
       equityRatio: comparePeriods(current.equityRatio, prev?.equityRatio),
       leverage: comparePeriods(current.leverage, prev?.leverage),
-      debtToEquity: comparePeriods(current.debtToEquity, prev?.debtToEquity),
-      solvencyRatio: comparePeriods(current.solvencyRatio, prev?.solvencyRatio),
+      debtToEquity: comparePeriods(
+        current.debtToEquity,
+        prev?.debtToEquity
+      ),
+      solvencyRatio: comparePeriods(
+        current.solvencyRatio,
+        prev?.solvencyRatio
+      ),
     };
-  }, [selectedPeriod, metrics]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [current, prev]);
 
   const benchMeta = useMemo(() => {
-    if (benchmarkLoading) return { title: "Benchmark branży", subtitle: "Ładowanie…" };
-    if (!benchmark) return { title: "Benchmark branży", subtitle: "Brak danych benchmarku." };
-    if (benchmark.unavailable) return { title: "Benchmark branży", subtitle: benchmark.reason ?? "Niedostępny." };
+    if (benchmarkLoading) {
+      return { title: "Benchmark branży", subtitle: "Ładowanie…" };
+    }
+
+    if (!benchmark) {
+      return { title: "Benchmark branży", subtitle: "Brak danych benchmarku." };
+    }
+
+    if (benchmark.unavailable) {
+      return {
+        title: "Benchmark branży",
+        subtitle: benchmark.reason ?? "Niedostępny.",
+      };
+    }
 
     return {
       title: `Benchmark branży (${industryLabel(benchmark.industry)})`,
-      subtitle: `N: ${benchmark.n} • okres: ${benchmark.period}`,
+      subtitle: `N: ${benchmark.n} • okres: ${getPeriodLabel(benchmark.period)}`,
     };
   }, [benchmark, benchmarkLoading]);
 
@@ -323,16 +390,23 @@ export default function ReportView({
     formatter: (v?: number) => string = formatNumber
   ) {
     const s = getBenchmarkStat(benchmark, key);
+
     if (!s || benchmark?.unavailable) {
-      return { line1: undefined, line2: undefined, tone: "none" as BenchTone };
+      return {
+        line1: undefined,
+        line2: undefined,
+        tone: "none" as BenchTone,
+      };
     }
 
     const label = inRangeLabel(currentValue, s.p25, s.p75);
     const tone = benchToneFor(key, currentValue, s.p25, s.p75);
 
-    const line1 = `Branża: mediana ${formatter(s.p50 ?? undefined)} (p25–p75: ${formatter(
-      s.p25 ?? undefined
-    )} – ${formatter(s.p75 ?? undefined)})`;
+    const line1 = `Branża: mediana ${formatter(
+      s.p50 ?? undefined
+    )} (p25–p75: ${formatter(s.p25 ?? undefined)} – ${formatter(
+      s.p75 ?? undefined
+    )})`;
 
     const line2 = label ? `Twoja firma: ${label}` : undefined;
 
@@ -340,26 +414,36 @@ export default function ReportView({
   }
 
   const benchDebt = benchLinesFor("debtRatio", current.debtRatio, formatPercent);
-  const benchEquity = benchLinesFor("equityRatio", current.equityRatio, formatPercent);
+  const benchEquity = benchLinesFor(
+    "equityRatio",
+    current.equityRatio,
+    formatPercent
+  );
   const benchLev = benchLinesFor("leverage", current.leverage, formatNumber);
-  const benchD2E = benchLinesFor("debtToEquity", current.debtToEquity, formatNumber);
-  const benchSolv = benchLinesFor("solvencyRatio", current.solvencyRatio, formatNumber);
+  const benchD2E = benchLinesFor(
+    "debtToEquity",
+    current.debtToEquity,
+    formatNumber
+  );
+  const benchSolv = benchLinesFor(
+    "solvencyRatio",
+    current.solvencyRatio,
+    formatNumber
+  );
 
   return (
     <div className="space-y-6">
-      {/* ===== HEADER (Insight branding) ===== */}
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-bold">Raport finansowy – DataGate Insight</h1>
+        <h1 className="text-2xl font-bold">
+          Raport finansowy – DataGate Insight
+        </h1>
         <p className="mt-1 text-xs text-gray-400">DataGate Insight</p>
 
-        {/* zachowujemy info o raporcie (nie usuwamy słowa "Raport") */}
-        {reportName && (
-          <p className="mt-2 text-sm text-gray-600">
-            {reportName}
-          </p>
-        )}
+        {reportName && <p className="mt-2 text-sm text-gray-600">{reportName}</p>}
 
-        <p className="mt-1 text-sm text-gray-500">Branża: {industryLabel(industry)}</p>
+        <p className="mt-1 text-sm text-gray-500">
+          Branża: {industryLabel(industry)}
+        </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <label className="text-sm text-gray-500">Okres:</label>
@@ -370,14 +454,13 @@ export default function ReportView({
           >
             {periods.map((p) => (
               <option key={p} value={p}>
-                {p}
+                {getPeriodLabel(p)}
               </option>
             ))}
           </select>
         </div>
       </div>
 
-      {/* ===== BENCHMARK SECTION HEADER (Benchmark branding) ===== */}
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold">Porównanie branżowe</h2>
         <p className="mt-1 text-xs text-gray-400">DataGate Benchmark</p>
@@ -390,8 +473,12 @@ export default function ReportView({
 
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
         <p className="text-sm text-gray-500">Health Score</p>
-        <p className="mt-2 text-3xl font-bold text-green-600">{healthScore}/100</p>
-        <p className="mt-1 text-sm text-gray-600">{getHealthLabel(healthScore)}</p>
+        <p className="mt-2 text-3xl font-bold text-green-600">
+          {healthScore}/100
+        </p>
+        <p className="mt-1 text-sm text-gray-600">
+          {getHealthLabel(healthScore)}
+        </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

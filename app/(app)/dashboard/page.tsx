@@ -132,7 +132,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* HEADER */}
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -142,10 +141,11 @@ export default function DashboardPage() {
 
           <div className="flex flex-wrap gap-3">
             <Link
-              href="/demo"
-              className="rounded-lg border px-4 py-2 hover:bg-gray-100"
+              href="/upload"
+              className="rounded-lg px-4 py-2 text-white"
+              style={{ backgroundColor: "#0d1a34" }}
             >
-              Wygeneruj raport z własnych danych
+              Stwórz raport
             </Link>
 
             <Link
@@ -153,14 +153,6 @@ export default function DashboardPage() {
               className="rounded-lg border px-4 py-2 hover:bg-gray-100"
             >
               Zobacz przykładowy raport
-            </Link>
-
-            <Link
-              href="/upload"
-              className="rounded-lg px-4 py-2 text-white"
-              style={{ backgroundColor: "#0d1a34" }}
-            >
-              Dodaj raport
             </Link>
 
             <button
@@ -182,43 +174,34 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* EMPTY STATE */}
       {!hasReports && !error && (
         <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center">
           <h2 className="text-lg font-semibold">Brak raportów</h2>
           <p className="mt-2 text-gray-600">
-            Możesz wygenerować raport z własnych danych,
+            Możesz stworzyć nowy raport,
             <br />
-            sprawdzić demo lub wgrać plik CSV.
+            przejść do formularza danych lub zobaczyć przykład.
           </p>
 
           <div className="mt-6 flex flex-wrap justify-center gap-4">
             <Link
-              href="/demo"
-              className="rounded-lg border px-4 py-2 hover:bg-gray-100"
+              href="/upload"
+              className="rounded-lg px-4 py-2 text-white"
+              style={{ backgroundColor: "#0d1a34" }}
             >
-              Wygeneruj raport
+              Stwórz raport
             </Link>
 
             <Link
               href="/reports/demo"
               className="rounded-lg border px-4 py-2 hover:bg-gray-100"
             >
-              Zobacz demo
-            </Link>
-
-            <Link
-              href="/upload"
-              className="rounded-lg px-4 py-2 text-white"
-              style={{ backgroundColor: "#0d1a34" }}
-            >
-              Dodaj raport
+              Zobacz przykładowy raport
             </Link>
           </div>
         </div>
       )}
 
-      {/* REPORT LIST */}
       {hasReports && (
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="divide-y">

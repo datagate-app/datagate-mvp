@@ -18,15 +18,13 @@ type IndustryKey = keyof typeof INDUSTRIES;
 export default function InteractiveDemoPage() {
   const router = useRouter();
 
+  const [reportName, setReportName] = useState("");
   const [aktywa, setAktywa] = useState("");
   const [kapital, setKapital] = useState("");
-  const [industry, setIndustry] =
-    useState<IndustryKey>("manufacturing");
-
+  const [industry, setIndustry] = useState<IndustryKey>("manufacturing");
   const [loading, setLoading] = useState(false);
 
   async function handleGenerate() {
-
     const user = auth.currentUser;
 
     if (!user) {
@@ -37,46 +35,58 @@ export default function InteractiveDemoPage() {
     const assets = Number(aktywa);
     const equity = Number(kapital);
 
-    if (!assets || !equity || equity > assets) {
-      alert("Sprawdź dane – kapitał nie może być większy niż aktywa.");
+    if (!assets || assets <= 0) {
+      alert("Podaj poprawną wartość aktywów.");
+      return;
+    }
+
+    if (!equity || equity <= 0) {
+      alert("Podaj poprawną wartość kapitału własnego.");
+      return;
+    }
+
+    if (equity > assets) {
+      alert("Kapitał własny nie może być większy niż aktywa.");
       return;
     }
 
     setLoading(true);
 
-    const liabilities = assets - equity;
-
-    const debtRatio = liabilities / assets;
-    const equityRatio = equity / assets;
-    const leverage = assets / equity;
-    const debtToEquity = liabilities / equity;
-    const solvencyRatio = assets / liabilities;
-
-    const metrics: Metrics = {
-      tMinus2: {},
-      tMinus1: {},
-      t0: {
-        aktywaRazem: assets,
-        kapitalWlasny: equity,
-        zobowiazania: liabilities,
-        debtRatio,
-        equityRatio,
-        leverage,
-        debtToEquity,
-        solvencyRatio,
-      },
-      t1: {},
-      t2: {},
-      t3: {},
-      t4: {},
-      t5: {},
-      t6: {},
-    };
-
     try {
+      const liabilities = assets - equity;
 
-      // 🔑 pobranie tokena firebase
+      const debtRatio = liabilities / assets;
+      const equityRatio = equity / assets;
+      const leverage = assets / equity;
+      const debtToEquity = liabilities / equity;
+      const solvencyRatio =
+        liabilities === 0 ? null : assets / liabilities;
+
+      const metrics: Metrics = {
+        tMinus2: {},
+        tMinus1: {},
+        t0: {
+          aktywaRazem: assets,
+          kapitalWlasny: equity,
+          zobowiazania: liabilities,
+          debtRatio,
+          equityRatio,
+          leverage,
+          debtToEquity,
+          solvencyRatio: solvencyRatio ?? undefined,
+        },
+        t1: {},
+        t2: {},
+        t3: {},
+        t4: {},
+        t5: {},
+        t6: {},
+      };
+
       const token = await user.getIdToken(true);
+
+      const finalReportName =
+        reportName.trim() || "Raport demo";
 
       const res = await fetch("/api/reports", {
         method: "POST",
@@ -85,7 +95,7 @@ export default function InteractiveDemoPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          name: "Raport – Twoje dane",
+          name: finalReportName,
           industry,
           metrics,
         }),
@@ -94,25 +104,20 @@ export default function InteractiveDemoPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error("Błąd zapisu");
+        throw new Error(data?.error || "Błąd zapisu raportu.");
       }
 
       router.push(`/reports/${data.id}`);
-
     } catch (err) {
-
       console.error(err);
-
       alert("Wystąpił błąd podczas zapisu raportu.");
-
+    } finally {
       setLoading(false);
-
     }
   }
 
   return (
-    <div className="space-y-6 max-w-xl">
-
+    <div className="max-w-xl space-y-6">
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
         <h1 className="text-2xl font-bold">
           Wygeneruj raport z własnych danych
@@ -122,7 +127,23 @@ export default function InteractiveDemoPage() {
         </p>
       </div>
 
-      <div className="rounded-2xl border bg-white p-6 shadow-sm space-y-4">
+      <div className="space-y-4 rounded-2xl border bg-white p-6 shadow-sm">
+        <div>
+          <label className="block text-sm text-gray-500">
+            Nazwa raportu
+          </label>
+
+          <input
+            type="text"
+            value={reportName}
+            onChange={(e) => setReportName(e.target.value)}
+            placeholder="np. Raport testowy Q4 2025"
+            className="mt-1 w-full rounded-lg border px-3 py-2"
+          />
+          <p className="mt-1 text-xs text-gray-400">
+            Jeśli zostawisz puste, zapisze się jako „Raport demo”.
+          </p>
+        </div>
 
         <div>
           <label className="block text-sm text-gray-500">
@@ -136,13 +157,11 @@ export default function InteractiveDemoPage() {
             }
             className="mt-1 w-full rounded-lg border px-3 py-2"
           >
-
             {Object.entries(INDUSTRIES).map(([key, label]) => (
               <option key={key} value={key}>
                 {label}
               </option>
             ))}
-
           </select>
         </div>
 
@@ -155,6 +174,7 @@ export default function InteractiveDemoPage() {
             type="number"
             value={aktywa}
             onChange={(e) => setAktywa(e.target.value)}
+            placeholder="np. 1000"
             className="mt-1 w-full rounded-lg border px-3 py-2"
           />
         </div>
@@ -168,6 +188,7 @@ export default function InteractiveDemoPage() {
             type="number"
             value={kapital}
             onChange={(e) => setKapital(e.target.value)}
+            placeholder="np. 500"
             className="mt-1 w-full rounded-lg border px-3 py-2"
           />
         </div>
@@ -177,15 +198,12 @@ export default function InteractiveDemoPage() {
           disabled={loading}
           className={`w-full rounded-lg px-4 py-2 text-white ${
             loading
-              ? "bg-gray-400 cursor-not-allowed"
+              ? "cursor-not-allowed bg-gray-400"
               : "bg-black hover:bg-gray-800"
           }`}
         >
-
           {loading ? "Generowanie..." : "Generuj raport"}
-
         </button>
-
       </div>
     </div>
   );
