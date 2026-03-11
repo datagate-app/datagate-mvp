@@ -3,7 +3,15 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { adminDb, adminAuth } from "@/lib/firebase-admin";
 import { parseBilansCsv } from "@/lib/parser/parseBilansCsv";
-import { calculateMetrics } from "@/lib/parser/calculateMetrics";
+import {
+  mapRzisValuesToIncomeStatementData,
+  parseRzisCsv,
+} from "@/lib/parser/parseRzisCsv";
+import {
+  calculateCombinedMetrics,
+  calculateIncomeMetrics,
+  calculateMetrics,
+} from "@/lib/parser/calculateMetrics";
 
 /* =====================================================
    AUTH HELPER
@@ -89,6 +97,17 @@ function normalizeReportName(value: unknown, fallback: string) {
   return trimmed || fallback;
 }
 
+function isCsvFile(file: File | null) {
+  if (!file) return false;
+
+  const fileName = file.name || "";
+
+  return (
+    file.type === "text/csv" ||
+    fileName.toLowerCase().endsWith(".csv")
+  );
+}
+
 /* =====================================================
    POST → CREATE REPORT
 ===================================================== */
@@ -109,6 +128,9 @@ export async function POST(req: Request) {
         industry,
         metrics,
         rawBalanceData,
+        incomeStatementData,
+        incomeMetrics,
+        combinedMetrics,
         inputMode,
       } = body ?? {};
 
@@ -134,6 +156,18 @@ export async function POST(req: Request) {
         payload.rawBalanceData = rawBalanceData;
       }
 
+      if (incomeStatementData && typeof incomeStatementData === "object") {
+        payload.incomeStatementData = incomeStatementData;
+      }
+
+      if (incomeMetrics && typeof incomeMetrics === "object") {
+        payload.incomeMetrics = incomeMetrics;
+      }
+
+      if (combinedMetrics && typeof combinedMetrics === "object") {
+        payload.combinedMetrics = combinedMetrics;
+      }
+
       if (typeof inputMode === "string" && inputMode.trim()) {
         payload.inputMode = inputMode.trim();
       }
@@ -153,46 +187,47 @@ export async function POST(req: Request) {
 
     const formData = await req.formData();
 
-    const file = formData.get("file") as File | null;
+    const balanceFile = (formData.get("balanceFile") as File | null) ??
+      (formData.get("file") as File | null);
+
+    const incomeStatementFile =
+      (formData.get("incomeStatementFile") as File | null) ??
+      (formData.get("rzisFile") as File | null);
+
     const industry = formData.get("industry") as string | null;
     const customName = formData.get("name");
     const inputMode = formData.get("inputMode");
 
-    if (!file) {
+    if (!balanceFile && !incomeStatementFile) {
       return NextResponse.json(
-        { error: "Brak pliku" },
+        { error: "Brak plików do importu." },
         { status: 400 }
       );
     }
 
-    const fileName = file.name || "Nowy raport";
+    if (balanceFile && !isCsvFile(balanceFile)) {
+      return NextResponse.json(
+        { error: "Nieprawidłowy format pliku bilansu. Wgraj CSV." },
+        { status: 400 }
+      );
+    }
+
+    if (incomeStatementFile && !isCsvFile(incomeStatementFile)) {
+      return NextResponse.json(
+        { error: "Nieprawidłowy format pliku RZiS. Wgraj CSV." },
+        { status: 400 }
+      );
+    }
+
+    const baseFileName =
+      balanceFile?.name ||
+      incomeStatementFile?.name ||
+      "Nowy raport";
+
     const finalName = normalizeReportName(
       customName,
-      fileName.replace(/\.[^/.]+$/, "")
+      baseFileName.replace(/\.[^/.]+$/, "")
     );
-
-    const isCsv =
-      file.type === "text/csv" ||
-      fileName.toLowerCase().endsWith(".csv");
-
-    if (!isCsv) {
-      return NextResponse.json(
-        { error: "Nieprawidłowy format. Wgraj CSV." },
-        { status: 400 }
-      );
-    }
-
-    const csvText = await file.text();
-
-    if (!csvText.trim()) {
-      return NextResponse.json(
-        { error: "Plik jest pusty." },
-        { status: 400 }
-      );
-    }
-
-    const bilansValues = parseBilansCsv(csvText);
-    const metrics = calculateMetrics(bilansValues);
 
     const payload: Record<string, any> = {
       name: finalName,
@@ -200,13 +235,70 @@ export async function POST(req: Request) {
       industry: industry || null,
       status: "ready",
       createdAt: new Date(),
-      metrics,
     };
+
+    let balanceMetrics: ReturnType<typeof calculateMetrics> | null = null;
+    let incomeMetricsResult: ReturnType<typeof calculateIncomeMetrics> | null =
+      null;
+
+    /* -------- bilans -------- */
+
+    if (balanceFile) {
+      const balanceCsvText = await balanceFile.text();
+
+      if (!balanceCsvText.trim()) {
+        return NextResponse.json(
+          { error: "Plik bilansu jest pusty." },
+          { status: 400 }
+        );
+      }
+
+      const bilansValues = parseBilansCsv(balanceCsvText);
+      balanceMetrics = calculateMetrics(bilansValues);
+
+      payload.metrics = balanceMetrics;
+      payload.rawBalanceData = bilansValues;
+    }
+
+    /* -------- RZiS -------- */
+
+    if (incomeStatementFile) {
+      const incomeCsvText = await incomeStatementFile.text();
+
+      if (!incomeCsvText.trim()) {
+        return NextResponse.json(
+          { error: "Plik RZiS jest pusty." },
+          { status: 400 }
+        );
+      }
+
+      const rzisValues = parseRzisCsv(incomeCsvText);
+      const incomeStatementData =
+        mapRzisValuesToIncomeStatementData(rzisValues);
+
+      incomeMetricsResult = calculateIncomeMetrics(incomeStatementData);
+
+      payload.incomeStatementData = incomeStatementData;
+      payload.incomeMetrics = incomeMetricsResult;
+    }
+
+    /* -------- analiza łączona -------- */
+
+    if (balanceMetrics && incomeMetricsResult) {
+      payload.combinedMetrics = calculateCombinedMetrics({
+        bilans: balanceMetrics,
+        income: incomeMetricsResult,
+      });
+    }
 
     if (typeof inputMode === "string" && inputMode.trim()) {
       payload.inputMode = inputMode.trim();
+    } else if (balanceFile && incomeStatementFile) {
+      payload.inputMode = "import_csv_balance_rzis";
+    } else if (balanceFile) {
+      payload.inputMode = "import_csv_balance";
     } else {
-      payload.inputMode = "import_csv";
+      payload.inputMode = "import_csv_rzis";
     }
 
     const docRef = await adminDb.collection("reports").add(payload);
@@ -217,6 +309,8 @@ export async function POST(req: Request) {
       id: docRef.id,
       name: finalName,
       status: "ready",
+      hasBalance: Boolean(balanceFile),
+      hasIncomeStatement: Boolean(incomeStatementFile),
     });
   } catch (err: any) {
     if (err?.message === "Unauthorized") {

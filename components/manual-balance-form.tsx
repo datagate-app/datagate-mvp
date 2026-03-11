@@ -3,7 +3,17 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
-import type { Metrics } from "@/lib/types/metrics";
+import type {
+  CombinedMetrics,
+  IncomeMetrics,
+  IncomeStatementData,
+  Metrics,
+  PeriodKey as AppPeriodKey,
+} from "@/lib/types/metrics";
+import {
+  calculateCombinedMetrics,
+  calculateIncomeMetrics,
+} from "@/lib/parser/calculateMetrics";
 
 const PERIODS = ["t-2", "t-1", "t0", "t1", "t2", "t3", "t4", "t5", "t6"] as const;
 
@@ -20,10 +30,17 @@ type MetricsPeriodKey =
   | "t5"
   | "t6";
 
+type FormTab = "balance" | "income";
+
 type BalanceRow = {
   key: string;
   label: string;
   section: "assets" | "equity" | "liabilities";
+};
+
+type IncomeRow = {
+  key: string;
+  label: string;
 };
 
 const BALANCE_ROWS: BalanceRow[] = [
@@ -94,7 +111,7 @@ const BALANCE_ROWS: BalanceRow[] = [
     section: "equity",
   },
   {
-    key: "zysk_strata_netto",
+    key: "zysk_strata_netto_bilans",
     label: "Zysk / strata netto",
     section: "equity",
   },
@@ -121,6 +138,29 @@ const BALANCE_ROWS: BalanceRow[] = [
   },
 ];
 
+const INCOME_ROWS: IncomeRow[] = [
+  {
+    key: "przychody_netto_ze_sprzedazy",
+    label: "Przychody netto ze sprzedaży",
+  },
+  {
+    key: "koszty_dzialalnosci_operacyjnej",
+    label: "Koszty działalności operacyjnej",
+  },
+  {
+    key: "zysk_strata_z_dzialalnosci_operacyjnej",
+    label: "Zysk / strata z działalności operacyjnej",
+  },
+  {
+    key: "zysk_strata_brutto",
+    label: "Zysk / strata brutto",
+  },
+  {
+    key: "zysk_strata_netto_rzis",
+    label: "Zysk / strata netto",
+  },
+];
+
 type ManualBalanceFormProps = {
   reportName: string;
   onReportNameChange: (value: string) => void;
@@ -128,16 +168,16 @@ type ManualBalanceFormProps = {
   onIndustryChange: (value: string) => void;
 };
 
-type BalanceValues = Record<string, Record<PeriodKey, string>>;
+type TableValues = Record<string, Record<PeriodKey, string>>;
 
-function createInitialValues(): BalanceValues {
-  const result: BalanceValues = {};
+function createInitialValues(keys: string[]): TableValues {
+  const result: TableValues = {};
 
-  for (const row of BALANCE_ROWS) {
-    result[row.key] = {} as Record<PeriodKey, string>;
+  for (const key of keys) {
+    result[key] = {} as Record<PeriodKey, string>;
 
     for (const period of PERIODS) {
-      result[row.key][period] = "";
+      result[key][period] = "";
     }
   }
 
@@ -169,6 +209,34 @@ const PERIOD_TO_METRICS_KEY: Record<PeriodKey, MetricsPeriodKey> = {
   t6: "t6",
 };
 
+function emptyMetrics(): Metrics {
+  return {
+    tMinus2: {},
+    tMinus1: {},
+    t0: {},
+    t1: {},
+    t2: {},
+    t3: {},
+    t4: {},
+    t5: {},
+    t6: {},
+  };
+}
+
+function emptyIncomeStatementData(): IncomeStatementData {
+  return {
+    tMinus2: {},
+    tMinus1: {},
+    t0: {},
+    t1: {},
+    t2: {},
+    t3: {},
+    t4: {},
+    t5: {},
+    t6: {},
+  };
+}
+
 export default function ManualBalanceForm({
   reportName,
   onReportNameChange,
@@ -177,11 +245,17 @@ export default function ManualBalanceForm({
 }: ManualBalanceFormProps) {
   const router = useRouter();
 
-  const [values, setValues] = useState<BalanceValues>(() => createInitialValues());
+  const [activeTab, setActiveTab] = useState<FormTab>("balance");
+  const [balanceValues, setBalanceValues] = useState<TableValues>(() =>
+    createInitialValues(BALANCE_ROWS.map((row) => row.key))
+  );
+  const [incomeValues, setIncomeValues] = useState<TableValues>(() =>
+    createInitialValues(INCOME_ROWS.map((row) => row.key))
+  );
   const [loading, setLoading] = useState(false);
 
-  function updateCell(rowKey: string, period: PeriodKey, value: string) {
-    setValues((prev) => ({
+  function updateBalanceCell(rowKey: string, period: PeriodKey, value: string) {
+    setBalanceValues((prev) => ({
       ...prev,
       [rowKey]: {
         ...prev[rowKey],
@@ -190,7 +264,17 @@ export default function ManualBalanceForm({
     }));
   }
 
-  const totals = useMemo(() => {
+  function updateIncomeCell(rowKey: string, period: PeriodKey, value: string) {
+    setIncomeValues((prev) => ({
+      ...prev,
+      [rowKey]: {
+        ...prev[rowKey],
+        [period]: value,
+      },
+    }));
+  }
+
+  const balanceTotals = useMemo(() => {
     const assets = {} as Record<PeriodKey, number>;
     const equity = {} as Record<PeriodKey, number>;
     const liabilities = {} as Record<PeriodKey, number>;
@@ -198,17 +282,19 @@ export default function ManualBalanceForm({
 
     for (const period of PERIODS) {
       assets[period] = BALANCE_ROWS.filter((row) => row.section === "assets").reduce(
-        (sum, row) => sum + parseNumericValue(values[row.key][period]),
+        (sum, row) => sum + parseNumericValue(balanceValues[row.key][period]),
         0
       );
 
       equity[period] = BALANCE_ROWS.filter((row) => row.section === "equity").reduce(
-        (sum, row) => sum + parseNumericValue(values[row.key][period]),
+        (sum, row) => sum + parseNumericValue(balanceValues[row.key][period]),
         0
       );
 
-      liabilities[period] = BALANCE_ROWS.filter((row) => row.section === "liabilities").reduce(
-        (sum, row) => sum + parseNumericValue(values[row.key][period]),
+      liabilities[period] = BALANCE_ROWS.filter(
+        (row) => row.section === "liabilities"
+      ).reduce(
+        (sum, row) => sum + parseNumericValue(balanceValues[row.key][period]),
         0
       );
 
@@ -216,7 +302,7 @@ export default function ManualBalanceForm({
     }
 
     return { assets, equity, liabilities, equityLiabilities };
-  }, [values]);
+  }, [balanceValues]);
 
   async function handleSubmit() {
     const user = auth.currentUser;
@@ -226,8 +312,17 @@ export default function ManualBalanceForm({
       return;
     }
 
-    const filledPeriods = PERIODS.filter((period) =>
-      BALANCE_ROWS.some((row) => hasAnyValue(values[row.key][period]))
+    const filledBalancePeriods = PERIODS.filter((period) =>
+      BALANCE_ROWS.some((row) => hasAnyValue(balanceValues[row.key][period]))
+    );
+
+    const filledIncomePeriods = PERIODS.filter((period) =>
+      INCOME_ROWS.some((row) => hasAnyValue(incomeValues[row.key][period]))
+    );
+
+    const filledPeriods = PERIODS.filter(
+      (period) =>
+        filledBalancePeriods.includes(period) || filledIncomePeriods.includes(period)
     );
 
     if (filledPeriods.length === 0) {
@@ -240,24 +335,14 @@ export default function ManualBalanceForm({
       return;
     }
 
-    for (const period of filledPeriods) {
-      const assetsTotal = totals.assets[period];
-      const equityTotal = totals.equity[period];
-      const liabilitiesTotal = totals.liabilities[period];
-      const equityLiabilitiesTotal = totals.equityLiabilities[period];
+    for (const period of filledBalancePeriods) {
+      const assetsTotal = balanceTotals.assets[period];
+      const equityTotal = balanceTotals.equity[period];
+      const liabilitiesTotal = balanceTotals.liabilities[period];
+      const equityLiabilitiesTotal = balanceTotals.equityLiabilities[period];
 
       if (assetsTotal <= 0) {
         alert(`Okres ${period}: aktywa razem muszą być większe od zera.`);
-        return;
-      }
-
-      if (equityTotal < 0) {
-        alert(`Okres ${period}: kapitał własny nie może być ujemny.`);
-        return;
-      }
-
-      if (liabilitiesTotal < 0) {
-        alert(`Okres ${period}: zobowiązania nie mogą być ujemne.`);
         return;
       }
 
@@ -275,33 +360,40 @@ export default function ManualBalanceForm({
       }
     }
 
+    for (const period of filledIncomePeriods) {
+      const revenue = parseNumericValue(
+        incomeValues.przychody_netto_ze_sprzedazy[period]
+      );
+
+      if (revenue <= 0) {
+        alert(`Okres ${period}: przychody netto ze sprzedaży muszą być większe od zera.`);
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
-      const metrics: Metrics = {
-        tMinus2: {},
-        tMinus1: {},
-        t0: {},
-        t1: {},
-        t2: {},
-        t3: {},
-        t4: {},
-        t5: {},
-        t6: {},
-      };
+      const metrics: Metrics = emptyMetrics();
+      const incomeStatementData: IncomeStatementData = emptyIncomeStatementData();
 
-      for (const period of filledPeriods) {
+      for (const period of filledBalancePeriods) {
         const metricsKey = PERIOD_TO_METRICS_KEY[period];
 
-        const assetsTotal = totals.assets[period];
-        const equityTotal = totals.equity[period];
-        const liabilitiesTotal = totals.liabilities[period];
+        const assetsTotal = balanceTotals.assets[period];
+        const equityTotal = balanceTotals.equity[period];
+        const liabilitiesTotal = balanceTotals.liabilities[period];
 
-        const debtRatio = assetsTotal === 0 ? undefined : liabilitiesTotal / assetsTotal;
-        const equityRatio = assetsTotal === 0 ? undefined : equityTotal / assetsTotal;
-        const leverage = equityTotal === 0 ? undefined : assetsTotal / equityTotal;
-        const debtToEquity = equityTotal === 0 ? undefined : liabilitiesTotal / equityTotal;
-        const solvencyRatio = liabilitiesTotal === 0 ? undefined : assetsTotal / liabilitiesTotal;
+        const debtRatio =
+          assetsTotal === 0 ? undefined : liabilitiesTotal / assetsTotal;
+        const equityRatio =
+          assetsTotal === 0 ? undefined : equityTotal / assetsTotal;
+        const leverage =
+          equityTotal === 0 ? undefined : assetsTotal / equityTotal;
+        const debtToEquity =
+          equityTotal === 0 ? undefined : liabilitiesTotal / equityTotal;
+        const solvencyRatio =
+          liabilitiesTotal === 0 ? undefined : assetsTotal / liabilitiesTotal;
 
         metrics[metricsKey] = {
           aktywaRazem: assetsTotal,
@@ -312,12 +404,53 @@ export default function ManualBalanceForm({
           leverage,
           debtToEquity,
           solvencyRatio,
+          zapasy: parseNumericValue(balanceValues.zapasy[period]),
+          naleznosciKrotkoterminowe: parseNumericValue(
+            balanceValues.naleznosci_krotko_terminowe[period]
+          ),
         };
+      }
+
+      for (const period of filledIncomePeriods) {
+        const metricsKey = PERIOD_TO_METRICS_KEY[period] as AppPeriodKey;
+
+        incomeStatementData[metricsKey] = {
+          przychodyNettoZeSprzedazy: parseNumericValue(
+            incomeValues.przychody_netto_ze_sprzedazy[period]
+          ),
+          kosztyDzialalnosciOperacyjnej: parseNumericValue(
+            incomeValues.koszty_dzialalnosci_operacyjnej[period]
+          ),
+          zyskStrataZDzialalnosciOperacyjnej: parseNumericValue(
+            incomeValues.zysk_strata_z_dzialalnosci_operacyjnej[period]
+          ),
+          zyskStrataBrutto: parseNumericValue(
+            incomeValues.zysk_strata_brutto[period]
+          ),
+          zyskStrataNetto: parseNumericValue(
+            incomeValues.zysk_strata_netto_rzis[period]
+          ),
+        };
+      }
+
+      const incomeMetrics: IncomeMetrics =
+        calculateIncomeMetrics(incomeStatementData);
+
+      const hasAnyBalanceData = filledBalancePeriods.length > 0;
+      const hasAnyIncomeData = filledIncomePeriods.length > 0;
+
+      let combinedMetrics: CombinedMetrics | undefined;
+
+      if (hasAnyBalanceData && hasAnyIncomeData) {
+        combinedMetrics = calculateCombinedMetrics({
+          bilans: metrics,
+          income: incomeMetrics,
+        });
       }
 
       const token = await user.getIdToken(true);
 
-      const finalReportName = reportName.trim() || "Bilans ręczny";
+      const finalReportName = reportName.trim() || "Raport ręczny";
 
       const res = await fetch("/api/reports", {
         method: "POST",
@@ -329,6 +462,10 @@ export default function ManualBalanceForm({
           name: finalReportName,
           industry,
           metrics,
+          incomeStatementData,
+          incomeMetrics,
+          combinedMetrics,
+          inputMode: "manual",
         }),
       });
 
@@ -354,10 +491,11 @@ export default function ManualBalanceForm({
   return (
     <section className="rounded-2xl border bg-white p-6 shadow-sm md:p-8">
       <div className="mb-6">
-        <h2 className="text-2xl font-semibold">Pełny bilans online</h2>
+        <h2 className="text-2xl font-semibold">Pełny raport online</h2>
         <p className="mt-2 text-sm text-gray-600">
-          Uzupełnij wielookresowy bilans bezpośrednio w przeglądarce. DataGate
-          policzy sumy i wygeneruje raport na podstawie wpisanych danych.
+          Uzupełnij wielookresowy bilans i uproszczony RZiS bezpośrednio w
+          przeglądarce. DataGate policzy wskaźniki bilansowe, wynikowe i analizę
+          łączną.
         </p>
       </div>
 
@@ -368,11 +506,11 @@ export default function ManualBalanceForm({
             type="text"
             value={reportName}
             onChange={(e) => onReportNameChange(e.target.value)}
-            placeholder="np. Bilans firmy XYZ 2025"
+            placeholder="np. Raport firmy XYZ 2025"
             className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
           />
           <p className="mt-1 text-xs text-gray-400">
-            Jeśli zostawisz puste, zapisze się jako „Bilans ręczny”.
+            Jeśli zostawisz puste, zapisze się jako „Raport ręczny”.
           </p>
         </div>
 
@@ -394,185 +532,288 @@ export default function ManualBalanceForm({
         <div className="rounded-xl border border-dashed bg-gray-50 p-4">
           <p className="text-sm font-medium text-gray-700">Okresy</p>
           <p className="mt-1 text-sm text-gray-600">
-            Wspierane są: t-2, t-1, t0, t1, t2, t3, t4, t5, t6. Na ten moment
-            do wygenerowania raportu wymagany jest przynajmniej okres t0.
+            Wspierane są: t-2, t-1, t0, t1, t2, t3, t4, t5, t6. Do
+            wygenerowania raportu wymagany jest przynajmniej okres t0.
           </p>
         </div>
       </div>
 
-      <div className="mt-6 overflow-x-auto rounded-xl border">
-        <table className="min-w-[1400px] border-collapse text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="border-b px-4 py-3 text-left font-semibold text-gray-700">
-                Pozycja
-              </th>
-              {PERIODS.map((period) => (
-                <th
-                  key={period}
-                  className="border-b px-3 py-3 text-center font-semibold text-gray-700"
-                >
-                  {period}
-                </th>
-              ))}
-            </tr>
-          </thead>
+      <div className="mt-6 rounded-2xl border bg-white p-2">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab("balance")}
+            className={`rounded-xl px-4 py-3 text-left text-sm font-medium transition ${
+              activeTab === "balance"
+                ? "bg-black text-white"
+                : "bg-white text-gray-700 hover:bg-gray-50"
+            }`}
+          >
+            Bilans
+          </button>
 
-          <tbody>
-            <tr className="bg-gray-50">
-              <td
-                className="border-b px-4 py-3 text-sm font-semibold uppercase tracking-wide text-gray-700"
-                colSpan={PERIODS.length + 1}
-              >
-                Aktywa
-              </td>
-            </tr>
-
-            {assetsRows.map((row) => (
-              <tr key={row.key}>
-                <td className="border-b px-4 py-3 font-medium text-gray-800">
-                  {row.label}
-                </td>
-
-                {PERIODS.map((period) => (
-                  <td key={`${row.key}-${period}`} className="border-b px-2 py-2">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={values[row.key][period]}
-                      onChange={(e) => updateCell(row.key, period, e.target.value)}
-                      placeholder="0"
-                      className="w-24 rounded-md border px-2 py-1.5 text-center text-sm outline-none transition focus:border-black"
-                    />
-                  </td>
-                ))}
-              </tr>
-            ))}
-
-            <tr className="bg-gray-50 font-semibold">
-              <td className="border-b px-4 py-3 text-gray-900">Aktywa razem</td>
-              {PERIODS.map((period) => (
-                <td
-                  key={`assets-total-${period}`}
-                  className="border-b px-2 py-3 text-center text-gray-900"
-                >
-                  {totals.assets[period].toLocaleString("pl-PL")}
-                </td>
-              ))}
-            </tr>
-
-            <tr className="bg-gray-50">
-              <td
-                className="border-b px-4 py-3 text-sm font-semibold uppercase tracking-wide text-gray-700"
-                colSpan={PERIODS.length + 1}
-              >
-                Kapitał własny
-              </td>
-            </tr>
-
-            {equityRows.map((row) => (
-              <tr key={row.key}>
-                <td className="border-b px-4 py-3 font-medium text-gray-800">
-                  {row.label}
-                </td>
-
-                {PERIODS.map((period) => (
-                  <td key={`${row.key}-${period}`} className="border-b px-2 py-2">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={values[row.key][period]}
-                      onChange={(e) => updateCell(row.key, period, e.target.value)}
-                      placeholder="0"
-                      className="w-24 rounded-md border px-2 py-1.5 text-center text-sm outline-none transition focus:border-black"
-                    />
-                  </td>
-                ))}
-              </tr>
-            ))}
-
-            <tr className="bg-gray-50 font-semibold">
-              <td className="border-b px-4 py-3 text-gray-900">Kapitał własny razem</td>
-              {PERIODS.map((period) => (
-                <td
-                  key={`equity-total-${period}`}
-                  className="border-b px-2 py-3 text-center text-gray-900"
-                >
-                  {totals.equity[period].toLocaleString("pl-PL")}
-                </td>
-              ))}
-            </tr>
-
-            <tr className="bg-gray-50">
-              <td
-                className="border-b px-4 py-3 text-sm font-semibold uppercase tracking-wide text-gray-700"
-                colSpan={PERIODS.length + 1}
-              >
-                Zobowiązania i rozliczenia
-              </td>
-            </tr>
-
-            {liabilitiesRows.map((row) => (
-              <tr key={row.key}>
-                <td className="border-b px-4 py-3 font-medium text-gray-800">
-                  {row.label}
-                </td>
-
-                {PERIODS.map((period) => (
-                  <td key={`${row.key}-${period}`} className="border-b px-2 py-2">
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={values[row.key][period]}
-                      onChange={(e) => updateCell(row.key, period, e.target.value)}
-                      placeholder="0"
-                      className="w-24 rounded-md border px-2 py-1.5 text-center text-sm outline-none transition focus:border-black"
-                    />
-                  </td>
-                ))}
-              </tr>
-            ))}
-
-            <tr className="bg-gray-50 font-semibold">
-              <td className="border-b px-4 py-3 text-gray-900">Zobowiązania razem</td>
-              {PERIODS.map((period) => (
-                <td
-                  key={`liabilities-total-${period}`}
-                  className="border-b px-2 py-3 text-center text-gray-900"
-                >
-                  {totals.liabilities[period].toLocaleString("pl-PL")}
-                </td>
-              ))}
-            </tr>
-
-            <tr className="bg-gray-100 font-semibold">
-              <td className="border-b px-4 py-3 text-gray-900">
-                Kapitał własny i zobowiązania razem
-              </td>
-              {PERIODS.map((period) => (
-                <td
-                  key={`equity-liabilities-total-${period}`}
-                  className="border-b px-2 py-3 text-center text-gray-900"
-                >
-                  {totals.equityLiabilities[period].toLocaleString("pl-PL")}
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-        <div className="rounded-xl border border-dashed bg-gray-50 p-4 text-sm text-gray-600">
-          W tej wersji sumy liczone są automatycznie po stronie formularza, więc
-          nie musisz ręcznie wpisywać pozycji agregujących.
-        </div>
-
-        <div className="rounded-xl border border-dashed bg-gray-50 p-4 text-sm text-gray-600">
-          Żeby wygenerować raport, bilans musi się zgadzać:
-          aktywa razem = kapitał własny + zobowiązania razem.
+          <button
+            type="button"
+            onClick={() => setActiveTab("income")}
+            className={`rounded-xl px-4 py-3 text-left text-sm font-medium transition ${
+              activeTab === "income"
+                ? "bg-black text-white"
+                : "bg-white text-gray-700 hover:bg-gray-50"
+            }`}
+          >
+            RZiS
+          </button>
         </div>
       </div>
+
+      {activeTab === "balance" && (
+        <>
+          <div className="mt-6 overflow-x-auto rounded-xl border">
+            <table className="min-w-[1400px] border-collapse text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="border-b px-4 py-3 text-left font-semibold text-gray-700">
+                    Pozycja
+                  </th>
+                  {PERIODS.map((period) => (
+                    <th
+                      key={period}
+                      className="border-b px-3 py-3 text-center font-semibold text-gray-700"
+                    >
+                      {period}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr className="bg-gray-50">
+                  <td
+                    className="border-b px-4 py-3 text-sm font-semibold uppercase tracking-wide text-gray-700"
+                    colSpan={PERIODS.length + 1}
+                  >
+                    Aktywa
+                  </td>
+                </tr>
+
+                {assetsRows.map((row) => (
+                  <tr key={row.key}>
+                    <td className="border-b px-4 py-3 font-medium text-gray-800">
+                      {row.label}
+                    </td>
+
+                    {PERIODS.map((period) => (
+                      <td key={`${row.key}-${period}`} className="border-b px-2 py-2">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={balanceValues[row.key][period]}
+                          onChange={(e) =>
+                            updateBalanceCell(row.key, period, e.target.value)
+                          }
+                          placeholder="0"
+                          className="w-24 rounded-md border px-2 py-1.5 text-center text-sm outline-none transition focus:border-black"
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+
+                <tr className="bg-gray-50 font-semibold">
+                  <td className="border-b px-4 py-3 text-gray-900">Aktywa razem</td>
+                  {PERIODS.map((period) => (
+                    <td
+                      key={`assets-total-${period}`}
+                      className="border-b px-2 py-3 text-center text-gray-900"
+                    >
+                      {balanceTotals.assets[period].toLocaleString("pl-PL")}
+                    </td>
+                  ))}
+                </tr>
+
+                <tr className="bg-gray-50">
+                  <td
+                    className="border-b px-4 py-3 text-sm font-semibold uppercase tracking-wide text-gray-700"
+                    colSpan={PERIODS.length + 1}
+                  >
+                    Kapitał własny
+                  </td>
+                </tr>
+
+                {equityRows.map((row) => (
+                  <tr key={row.key}>
+                    <td className="border-b px-4 py-3 font-medium text-gray-800">
+                      {row.label}
+                    </td>
+
+                    {PERIODS.map((period) => (
+                      <td key={`${row.key}-${period}`} className="border-b px-2 py-2">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={balanceValues[row.key][period]}
+                          onChange={(e) =>
+                            updateBalanceCell(row.key, period, e.target.value)
+                          }
+                          placeholder="0"
+                          className="w-24 rounded-md border px-2 py-1.5 text-center text-sm outline-none transition focus:border-black"
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+
+                <tr className="bg-gray-50 font-semibold">
+                  <td className="border-b px-4 py-3 text-gray-900">
+                    Kapitał własny razem
+                  </td>
+                  {PERIODS.map((period) => (
+                    <td
+                      key={`equity-total-${period}`}
+                      className="border-b px-2 py-3 text-center text-gray-900"
+                    >
+                      {balanceTotals.equity[period].toLocaleString("pl-PL")}
+                    </td>
+                  ))}
+                </tr>
+
+                <tr className="bg-gray-50">
+                  <td
+                    className="border-b px-4 py-3 text-sm font-semibold uppercase tracking-wide text-gray-700"
+                    colSpan={PERIODS.length + 1}
+                  >
+                    Zobowiązania i rozliczenia
+                  </td>
+                </tr>
+
+                {liabilitiesRows.map((row) => (
+                  <tr key={row.key}>
+                    <td className="border-b px-4 py-3 font-medium text-gray-800">
+                      {row.label}
+                    </td>
+
+                    {PERIODS.map((period) => (
+                      <td key={`${row.key}-${period}`} className="border-b px-2 py-2">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={balanceValues[row.key][period]}
+                          onChange={(e) =>
+                            updateBalanceCell(row.key, period, e.target.value)
+                          }
+                          placeholder="0"
+                          className="w-24 rounded-md border px-2 py-1.5 text-center text-sm outline-none transition focus:border-black"
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+
+                <tr className="bg-gray-50 font-semibold">
+                  <td className="border-b px-4 py-3 text-gray-900">
+                    Zobowiązania razem
+                  </td>
+                  {PERIODS.map((period) => (
+                    <td
+                      key={`liabilities-total-${period}`}
+                      className="border-b px-2 py-3 text-center text-gray-900"
+                    >
+                      {balanceTotals.liabilities[period].toLocaleString("pl-PL")}
+                    </td>
+                  ))}
+                </tr>
+
+                <tr className="bg-gray-100 font-semibold">
+                  <td className="border-b px-4 py-3 text-gray-900">
+                    Kapitał własny i zobowiązania razem
+                  </td>
+                  {PERIODS.map((period) => (
+                    <td
+                      key={`equity-liabilities-total-${period}`}
+                      className="border-b px-2 py-3 text-center text-gray-900"
+                    >
+                      {balanceTotals.equityLiabilities[period].toLocaleString("pl-PL")}
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-dashed bg-gray-50 p-4 text-sm text-gray-600">
+              W tej wersji sumy liczone są automatycznie po stronie formularza,
+              więc nie musisz ręcznie wpisywać pozycji agregujących.
+            </div>
+
+            <div className="rounded-xl border border-dashed bg-gray-50 p-4 text-sm text-gray-600">
+              Żeby wygenerować raport, bilans musi się zgadzać:
+              aktywa razem = kapitał własny + zobowiązania razem.
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeTab === "income" && (
+        <>
+          <div className="mt-6 overflow-x-auto rounded-xl border">
+            <table className="min-w-[1400px] border-collapse text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="border-b px-4 py-3 text-left font-semibold text-gray-700">
+                    Pozycja
+                  </th>
+                  {PERIODS.map((period) => (
+                    <th
+                      key={period}
+                      className="border-b px-3 py-3 text-center font-semibold text-gray-700"
+                    >
+                      {period}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+
+              <tbody>
+                {INCOME_ROWS.map((row) => (
+                  <tr key={row.key}>
+                    <td className="border-b px-4 py-3 font-medium text-gray-800">
+                      {row.label}
+                    </td>
+
+                    {PERIODS.map((period) => (
+                      <td key={`${row.key}-${period}`} className="border-b px-2 py-2">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={incomeValues[row.key][period]}
+                          onChange={(e) =>
+                            updateIncomeCell(row.key, period, e.target.value)
+                          }
+                          placeholder="0"
+                          className="w-24 rounded-md border px-2 py-1.5 text-center text-sm outline-none transition focus:border-black"
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-dashed bg-gray-50 p-4 text-sm text-gray-600">
+              Na start uzupełniamy uproszczony RZiS: przychody, koszty
+              operacyjne, wynik operacyjny, brutto i netto.
+            </div>
+
+            <div className="rounded-xl border border-dashed bg-gray-50 p-4 text-sm text-gray-600">
+              Do zapisania raportu wymagany jest przynajmniej przychód dla
+              okresu t0, jeśli chcesz uwzględnić część wynikową.
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="mt-6">
         <button
@@ -583,7 +824,7 @@ export default function ManualBalanceForm({
             loading ? "bg-gray-400" : "bg-black hover:bg-gray-800"
           }`}
         >
-          {loading ? "Generowanie..." : "Analizuj bilans"}
+          {loading ? "Generowanie..." : "Generuj raport"}
         </button>
       </div>
     </section>

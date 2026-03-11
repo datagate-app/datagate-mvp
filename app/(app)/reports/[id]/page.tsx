@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { auth } from "@/lib/firebase";
-import { onAuthStateChanged, User } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { useParams } from "next/navigation";
 import ReportView from "../components/ReportView";
-
-type Metrics = any;
+import type {
+  CombinedMetrics,
+  IncomeMetrics,
+  Metrics,
+} from "@/lib/types/metrics";
 
 type BenchmarkResponse = {
   industry: string;
@@ -24,7 +27,12 @@ type Report = {
   id: string;
   name: string;
   metrics?: Metrics;
+  incomeMetrics?: IncomeMetrics;
+  combinedMetrics?: CombinedMetrics;
+  incomeStatementData?: Record<string, unknown>;
+  rawBalanceData?: Record<string, unknown>;
   industry?: string;
+  inputMode?: string;
 };
 
 export default function ReportPage() {
@@ -66,14 +74,12 @@ export default function ReportPage() {
         /* ============================
            1) FULL REPORT
         ============================ */
-        const res = await fetch(
-          `/api/reports/${reportId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const res = await fetch(`/api/reports/${reportId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        });
 
         const text = await res.text();
 
@@ -99,7 +105,7 @@ export default function ReportPage() {
         setLoading(false);
 
         /* ============================
-           2) BENCHMARK
+           2) INITIAL BENCHMARK
         ============================ */
         setBenchmarkLoading(true);
 
@@ -109,6 +115,7 @@ export default function ReportPage() {
             headers: {
               Authorization: `Bearer ${token}`,
             },
+            cache: "no-store",
           }
         );
 
@@ -162,9 +169,6 @@ export default function ReportPage() {
     );
   }
 
-  /* ============================
-     DEBUG VIEW
-  ============================ */
   if (!report) {
     return (
       <div className="space-y-2 text-sm">
@@ -196,6 +200,8 @@ export default function ReportPage() {
   return (
     <ReportView
       metrics={report.metrics}
+      incomeMetrics={report.incomeMetrics}
+      combinedMetrics={report.combinedMetrics}
       industry={report.industry}
       reportName={report.name}
       benchmark={benchmark}

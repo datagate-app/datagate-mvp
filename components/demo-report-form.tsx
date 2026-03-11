@@ -3,7 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
-import type { Metrics } from "@/lib/types/metrics";
+import type {
+  CombinedMetrics,
+  IncomeMetrics,
+  IncomeStatementData,
+  Metrics,
+  PeriodKey,
+} from "@/lib/types/metrics";
+import {
+  calculateCombinedMetrics,
+  calculateIncomeMetrics,
+} from "@/lib/parser/calculateMetrics";
 
 const INDUSTRIES = [
   { value: "manufacturing", label: "Produkcja" },
@@ -24,6 +34,46 @@ type DemoReportFormProps = {
   onEquityChange: (value: string) => void;
 };
 
+const PERIOD_KEYS: PeriodKey[] = [
+  "tMinus2",
+  "tMinus1",
+  "t0",
+  "t1",
+  "t2",
+  "t3",
+  "t4",
+  "t5",
+  "t6",
+];
+
+function emptyMetrics(): Metrics {
+  return {
+    tMinus2: {},
+    tMinus1: {},
+    t0: {},
+    t1: {},
+    t2: {},
+    t3: {},
+    t4: {},
+    t5: {},
+    t6: {},
+  };
+}
+
+function emptyIncomeStatementData(): IncomeStatementData {
+  return {
+    tMinus2: {},
+    tMinus1: {},
+    t0: {},
+    t1: {},
+    t2: {},
+    t3: {},
+    t4: {},
+    t5: {},
+    t6: {},
+  };
+}
+
 export default function DemoReportForm({
   reportName,
   onReportNameChange,
@@ -37,6 +87,12 @@ export default function DemoReportForm({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
+  const [revenue, setRevenue] = useState("");
+  const [operatingCosts, setOperatingCosts] = useState("");
+  const [operatingProfit, setOperatingProfit] = useState("");
+  const [grossProfit, setGrossProfit] = useState("");
+  const [netProfit, setNetProfit] = useState("");
+
   async function handleGenerate() {
     const user = auth.currentUser;
 
@@ -47,6 +103,11 @@ export default function DemoReportForm({
 
     const assetsNumber = Number(assets);
     const equityNumber = Number(equity);
+    const revenueNumber = Number(revenue);
+    const operatingCostsNumber = Number(operatingCosts);
+    const operatingProfitNumber = Number(operatingProfit);
+    const grossProfitNumber = Number(grossProfit);
+    const netProfitNumber = Number(netProfit);
 
     if (!assetsNumber || assetsNumber <= 0) {
       alert("Podaj poprawną wartość aktywów.");
@@ -63,6 +124,31 @@ export default function DemoReportForm({
       return;
     }
 
+    if (!revenueNumber || revenueNumber <= 0) {
+      alert("Podaj poprawną wartość przychodów.");
+      return;
+    }
+
+    if (!operatingCosts && operatingCostsNumber !== 0) {
+      alert("Podaj poprawną wartość kosztów operacyjnych.");
+      return;
+    }
+
+    if (!operatingProfit && operatingProfitNumber !== 0) {
+      alert("Podaj poprawną wartość wyniku operacyjnego.");
+      return;
+    }
+
+    if (!grossProfit && grossProfitNumber !== 0) {
+      alert("Podaj poprawną wartość wyniku brutto.");
+      return;
+    }
+
+    if (!netProfit && netProfitNumber !== 0) {
+      alert("Podaj poprawną wartość wyniku netto.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -73,31 +159,40 @@ export default function DemoReportForm({
       const leverage = assetsNumber / equityNumber;
       const debtToEquity = liabilities / equityNumber;
       const solvencyRatio =
-        liabilities === 0 ? null : assetsNumber / liabilities;
+        liabilities === 0 ? undefined : assetsNumber / liabilities;
 
-      const metrics: Metrics = {
-        tMinus2: {},
-        tMinus1: {},
-        t0: {
-          aktywaRazem: assetsNumber,
-          kapitalWlasny: equityNumber,
-          zobowiazania: liabilities,
-          debtRatio,
-          equityRatio,
-          leverage,
-          debtToEquity,
-          solvencyRatio: solvencyRatio ?? undefined,
-        },
-        t1: {},
-        t2: {},
-        t3: {},
-        t4: {},
-        t5: {},
-        t6: {},
+      const metrics: Metrics = emptyMetrics();
+      metrics.t0 = {
+        aktywaRazem: assetsNumber,
+        kapitalWlasny: equityNumber,
+        zobowiazania: liabilities,
+        debtRatio,
+        equityRatio,
+        leverage,
+        debtToEquity,
+        solvencyRatio,
       };
 
-      const token = await user.getIdToken(true);
+      const incomeStatementData: IncomeStatementData =
+        emptyIncomeStatementData();
 
+      incomeStatementData.t0 = {
+        przychodyNettoZeSprzedazy: revenueNumber,
+        kosztyDzialalnosciOperacyjnej: operatingCostsNumber,
+        zyskStrataZDzialalnosciOperacyjnej: operatingProfitNumber,
+        zyskStrataBrutto: grossProfitNumber,
+        zyskStrataNetto: netProfitNumber,
+      };
+
+      const incomeMetrics: IncomeMetrics =
+        calculateIncomeMetrics(incomeStatementData);
+
+      const combinedMetrics: CombinedMetrics = calculateCombinedMetrics({
+        bilans: metrics,
+        income: incomeMetrics,
+      });
+
+      const token = await user.getIdToken(true);
       const finalReportName = reportName.trim() || "Raport demo";
 
       const res = await fetch("/api/reports", {
@@ -110,6 +205,10 @@ export default function DemoReportForm({
           name: finalReportName,
           industry,
           metrics,
+          incomeStatementData,
+          incomeMetrics,
+          combinedMetrics,
+          inputMode: "demo",
         }),
       });
 
@@ -133,8 +232,8 @@ export default function DemoReportForm({
       <div className="mb-6">
         <h2 className="text-2xl font-semibold">Demo danych</h2>
         <p className="mt-2 text-sm text-gray-600">
-          Szybka ścieżka do wygenerowania przykładowego raportu. Dodaj nazwę,
-          wybierz branżę i wpisz podstawowe dane.
+          Szybka ścieżka do wygenerowania przykładowego raportu. Dodaj dane
+          bilansu i uproszczone dane RZiS dla okresu t0.
         </p>
       </div>
 
@@ -173,35 +272,112 @@ export default function DemoReportForm({
         <div className="rounded-xl border border-dashed bg-gray-50 p-4">
           <p className="text-sm font-medium text-gray-700">Tryb demo</p>
           <p className="mt-1 text-sm text-gray-600">
-            Na podstawie aktywów i kapitału własnego wyliczymy zobowiązania i
-            podstawowe wskaźniki finansowe dla okresu t0.
+            Na podstawie bilansu i uproszczonego RZiS policzymy podstawowe
+            wskaźniki finansowe, rentowność oraz analizę łączną dla okresu t0.
           </p>
         </div>
 
-        <div>
-          <label className="text-sm font-medium text-gray-700">
-            Aktywa razem (w tys. zł)
-          </label>
-          <input
-            type="number"
-            value={assets}
-            onChange={(e) => onAssetsChange(e.target.value)}
-            placeholder="np. 1000"
-            className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
-          />
+        <div className="md:col-span-2 rounded-xl border border-slate-200 p-4">
+          <p className="text-sm font-semibold text-slate-800">Bilans — t0</p>
+
+          <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2">
+            <div>
+              <label className="text-sm font-medium text-gray-700">
+                Aktywa razem (w tys. zł)
+              </label>
+              <input
+                type="number"
+                value={assets}
+                onChange={(e) => onAssetsChange(e.target.value)}
+                placeholder="np. 1000"
+                className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700">
+                Kapitał własny (w tys. zł)
+              </label>
+              <input
+                type="number"
+                value={equity}
+                onChange={(e) => onEquityChange(e.target.value)}
+                placeholder="np. 500"
+                className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
+              />
+            </div>
+          </div>
         </div>
 
-        <div>
-          <label className="text-sm font-medium text-gray-700">
-            Kapitał własny (w tys. zł)
-          </label>
-          <input
-            type="number"
-            value={equity}
-            onChange={(e) => onEquityChange(e.target.value)}
-            placeholder="np. 500"
-            className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
-          />
+        <div className="md:col-span-2 rounded-xl border border-slate-200 p-4">
+          <p className="text-sm font-semibold text-slate-800">RZiS — t0</p>
+
+          <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2">
+            <div>
+              <label className="text-sm font-medium text-gray-700">
+                Przychody netto ze sprzedaży (w tys. zł)
+              </label>
+              <input
+                type="number"
+                value={revenue}
+                onChange={(e) => setRevenue(e.target.value)}
+                placeholder="np. 1500"
+                className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700">
+                Koszty działalności operacyjnej (w tys. zł)
+              </label>
+              <input
+                type="number"
+                value={operatingCosts}
+                onChange={(e) => setOperatingCosts(e.target.value)}
+                placeholder="np. 1200"
+                className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700">
+                Wynik operacyjny (w tys. zł)
+              </label>
+              <input
+                type="number"
+                value={operatingProfit}
+                onChange={(e) => setOperatingProfit(e.target.value)}
+                placeholder="np. 220"
+                className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700">
+                Wynik brutto (w tys. zł)
+              </label>
+              <input
+                type="number"
+                value={grossProfit}
+                onChange={(e) => setGrossProfit(e.target.value)}
+                placeholder="np. 210"
+                className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium text-gray-700">
+                Wynik netto (w tys. zł)
+              </label>
+              <input
+                type="number"
+                value={netProfit}
+                onChange={(e) => setNetProfit(e.target.value)}
+                placeholder="np. 170"
+                className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
