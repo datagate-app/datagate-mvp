@@ -11,6 +11,7 @@ type AdminUserRow = {
   role: string;
   disabled: boolean;
   reportsCount: number;
+  createdAt: string | null;
 };
 
 type IndustryStat = {
@@ -19,12 +20,40 @@ type IndustryStat = {
   count: number;
 };
 
+type AdminReportRow = {
+  id: string;
+  name: string;
+  ownerId: string;
+  industry: string;
+  status: string;
+  inputMode: string;
+  createdAt: string | null;
+};
+
+function formatDate(value: string | null) {
+  if (!value) return "—";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "—";
+
+  return date.toLocaleString("pl-PL", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState(false);
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [industryStats, setIndustryStats] = useState<IndustryStat[]>([]);
+  const [reports, setReports] = useState<AdminReportRow[]>([]);
   const [meUid, setMeUid] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const getAuthHeaders = async () => {
     const token = await auth.currentUser?.getIdToken();
@@ -39,6 +68,7 @@ export default function AdminPage() {
 
     const res = await fetch(`/api/admin/users?uid=${uid}`, {
       headers,
+      cache: "no-store",
     });
 
     if (!res.ok) {
@@ -56,12 +86,27 @@ export default function AdminPage() {
 
     const res = await fetch("/api/admin/industry-stats", {
       headers,
+      cache: "no-store",
     });
 
     if (!res.ok) return;
 
     const data = await res.json();
     setIndustryStats(data);
+  };
+
+  const loadReports = async (uid: string) => {
+    const headers = await getAuthHeaders();
+
+    const res = await fetch(`/api/admin/reports?uid=${uid}`, {
+      headers,
+      cache: "no-store",
+    });
+
+    if (!res.ok) return;
+
+    const data = await res.json();
+    setReports(data);
   };
 
   useEffect(() => {
@@ -74,7 +119,6 @@ export default function AdminPage() {
 
       setMeUid(user.uid);
 
-      // szybki check roli (UX)
       const snap = await getDoc(doc(db, "users", user.uid));
 
       if (!snap.exists() || snap.data()?.role !== "admin") {
@@ -85,7 +129,8 @@ export default function AdminPage() {
 
       await Promise.all([
         loadUsers(user.uid),
-        loadIndustryStats()
+        loadIndustryStats(),
+        loadReports(user.uid),
       ]);
 
       setLoading(false);
@@ -94,26 +139,90 @@ export default function AdminPage() {
     return () => unsub();
   }, []);
 
-  const handleAction = async (
+  const refreshAll = async () => {
+    if (!meUid) return;
+
+    await Promise.all([
+      loadUsers(meUid),
+      loadIndustryStats(),
+      loadReports(meUid),
+    ]);
+  };
+
+  const handleUserAction = async (
     targetUid: string,
     action: "toggle-disable" | "delete-user"
   ) => {
     if (!meUid) return;
 
-    const headers = await getAuthHeaders();
+    const confirmText =
+      action === "delete-user"
+        ? "Na pewno usunąć użytkownika wraz z jego raportami i kontem Firebase Auth?"
+        : "Na pewno zmienić status blokady użytkownika?";
 
-    await fetch("/api/admin/users", {
-      method: "PATCH",
-      headers,
-      body: JSON.stringify({
-        adminUid: meUid,
-        targetUid,
-        action,
-      }),
-    });
+    if (!window.confirm(confirmText)) return;
 
-    await loadUsers(meUid);
-    await loadIndustryStats();
+    try {
+      setActionLoading(`${action}:${targetUid}`);
+
+      const headers = await getAuthHeaders();
+
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({
+          adminUid: meUid,
+          targetUid,
+          action,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Operacja nie powiodła się.");
+      }
+
+      await refreshAll();
+    } catch (error: any) {
+      console.error(error);
+      alert(error?.message || "Wystąpił błąd.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteReport = async (reportId: string) => {
+    if (!meUid) return;
+    if (!window.confirm("Na pewno usunąć ten raport?")) return;
+
+    try {
+      setActionLoading(`delete-report:${reportId}`);
+
+      const headers = await getAuthHeaders();
+
+      const res = await fetch("/api/admin/reports", {
+        method: "DELETE",
+        headers,
+        body: JSON.stringify({
+          adminUid: meUid,
+          reportId,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Nie udało się usunąć raportu.");
+      }
+
+      await refreshAll();
+    } catch (error: any) {
+      console.error(error);
+      alert(error?.message || "Wystąpił błąd.");
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   if (loading) return <p className="p-6">Ładowanie...</p>;
@@ -121,23 +230,18 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-6 p-6">
-
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
         <h1 className="text-2xl font-bold">Panel admina</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Zarządzanie userami i raportami (MVP)
+          Zarządzanie użytkownikami, raportami i statystykami systemu.
         </p>
       </div>
 
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold">
-          Raporty według branży
-        </h2>
+        <h2 className="mb-4 text-lg font-semibold">Raporty według branży</h2>
 
         {industryStats.length === 0 ? (
-          <p className="text-sm text-gray-500">
-            Brak danych branżowych.
-          </p>
+          <p className="text-sm text-gray-500">Brak danych branżowych.</p>
         ) : (
           <div className="space-y-2">
             {industryStats.map((item) => (
@@ -154,44 +258,132 @@ export default function AdminPage() {
       </div>
 
       <div className="rounded-2xl border bg-white p-4 shadow-sm">
-        <div className="divide-y">
-          {users.map((u) => (
-            <div key={u.uid} className="flex items-center justify-between py-4">
-              <div>
-                <p className="font-medium text-gray-900">{u.email}</p>
-                <p className="text-xs text-gray-500">UID: {u.uid}</p>
-                <p className="text-xs text-gray-500">Rola: {u.role}</p>
-                <p className="text-xs text-gray-500">
-                  Raporty: {u.reportsCount}
-                </p>
-                <p className="text-xs">
-                  Status:{" "}
-                  <span className={u.disabled ? "text-red-600" : "text-green-600"}>
-                    {u.disabled ? "Zablokowany (flag)" : "Aktywny"}
-                  </span>
-                </p>
-              </div>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Użytkownicy</h2>
+          <span className="text-sm text-gray-500">Łącznie: {users.length}</span>
+        </div>
 
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleAction(u.uid, "toggle-disable")}
-                  className="rounded border px-3 py-1 text-sm hover:bg-gray-50"
-                >
-                  {u.disabled ? "Odblokuj" : "Zablokuj"}
-                </button>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="border-b text-left text-gray-500">
+                <th className="px-3 py-3">Email</th>
+                <th className="px-3 py-3">UID</th>
+                <th className="px-3 py-3">Rola</th>
+                <th className="px-3 py-3">Utworzono</th>
+                <th className="px-3 py-3">Raporty</th>
+                <th className="px-3 py-3">Status</th>
+                <th className="px-3 py-3 text-right">Akcje</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((u) => {
+                const isBusy =
+                  actionLoading === `toggle-disable:${u.uid}` ||
+                  actionLoading === `delete-user:${u.uid}`;
 
-                <button
-                  onClick={() => handleAction(u.uid, "delete-user")}
-                  className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700"
-                >
-                  Usuń
-                </button>
-              </div>
-            </div>
-          ))}
+                return (
+                  <tr key={u.uid} className="border-b align-top">
+                    <td className="px-3 py-3 font-medium text-gray-900">
+                      {u.email || "—"}
+                    </td>
+                    <td className="px-3 py-3 text-xs text-gray-500">{u.uid}</td>
+                    <td className="px-3 py-3">{u.role}</td>
+                    <td className="px-3 py-3">{formatDate(u.createdAt)}</td>
+                    <td className="px-3 py-3">{u.reportsCount}</td>
+                    <td className="px-3 py-3">
+                      <span
+                        className={
+                          u.disabled ? "text-red-600 font-medium" : "text-green-600 font-medium"
+                        }
+                      >
+                        {u.disabled ? "Zablokowany" : "Aktywny"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleUserAction(u.uid, "toggle-disable")}
+                          disabled={isBusy}
+                          className="rounded border px-3 py-1 text-sm hover:bg-gray-50 disabled:opacity-50"
+                        >
+                          {u.disabled ? "Odblokuj" : "Zablokuj"}
+                        </button>
+
+                        <button
+                          onClick={() => handleUserAction(u.uid, "delete-user")}
+                          disabled={isBusy || meUid === u.uid}
+                          className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+                        >
+                          Usuń
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 
+      <div className="rounded-2xl border bg-white p-4 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Raporty</h2>
+          <span className="text-sm text-gray-500">Łącznie: {reports.length}</span>
+        </div>
+
+        {reports.length === 0 ? (
+          <p className="text-sm text-gray-500">Brak raportów.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-gray-500">
+                  <th className="px-3 py-3">Nazwa</th>
+                  <th className="px-3 py-3">Owner UID</th>
+                  <th className="px-3 py-3">Branża</th>
+                  <th className="px-3 py-3">Status</th>
+                  <th className="px-3 py-3">Tryb</th>
+                  <th className="px-3 py-3">Utworzono</th>
+                  <th className="px-3 py-3 text-right">Akcje</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reports.map((report) => {
+                  const isBusy = actionLoading === `delete-report:${report.id}`;
+
+                  return (
+                    <tr key={report.id} className="border-b align-top">
+                      <td className="px-3 py-3 font-medium text-gray-900">
+                        {report.name || "Bez nazwy"}
+                      </td>
+                      <td className="px-3 py-3 text-xs text-gray-500">
+                        {report.ownerId || "—"}
+                      </td>
+                      <td className="px-3 py-3">{report.industry || "—"}</td>
+                      <td className="px-3 py-3">{report.status || "—"}</td>
+                      <td className="px-3 py-3">{report.inputMode || "—"}</td>
+                      <td className="px-3 py-3">{formatDate(report.createdAt)}</td>
+                      <td className="px-3 py-3">
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() => handleDeleteReport(report.id)}
+                            disabled={isBusy}
+                            className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+                          >
+                            Usuń raport
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

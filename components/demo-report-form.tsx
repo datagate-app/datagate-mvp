@@ -46,6 +46,18 @@ const PERIOD_KEYS: PeriodKey[] = [
   "t6",
 ];
 
+const PERIOD_MULTIPLIERS: Record<PeriodKey, number> = {
+  tMinus2: 0.78,
+  tMinus1: 0.89,
+  t0: 1,
+  t1: 1.08,
+  t2: 1.17,
+  t3: 1.27,
+  t4: 1.38,
+  t5: 1.5,
+  t6: 1.63,
+};
+
 function emptyMetrics(): Metrics {
   return {
     tMinus2: {},
@@ -74,6 +86,123 @@ function emptyIncomeStatementData(): IncomeStatementData {
   };
 }
 
+function round2(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function buildDemoBalanceMetrics(
+  assetsBase: number,
+  equityBase: number
+): Metrics {
+  const metrics = emptyMetrics();
+  const baseEquityRatio = clamp(equityBase / assetsBase, 0.2, 0.85);
+
+  PERIOD_KEYS.forEach((period, index) => {
+    const multiplier = PERIOD_MULTIPLIERS[period];
+    const assetsValue = round2(assetsBase * multiplier);
+
+    const equityRatioShift = (index - 2) * 0.01;
+    const equityRatio = clamp(baseEquityRatio + equityRatioShift, 0.22, 0.82);
+
+    const equityValue = round2(assetsValue * equityRatio);
+    const liabilitiesValue = round2(assetsValue - equityValue);
+
+    const debtRatio = liabilitiesValue / assetsValue;
+    const leverage = equityValue === 0 ? 0 : assetsValue / equityValue;
+    const debtToEquity = equityValue === 0 ? 0 : liabilitiesValue / equityValue;
+    const solvencyRatio =
+      liabilitiesValue === 0 ? 0 : assetsValue / liabilitiesValue;
+
+    const receivables = round2(assetsValue * 0.16);
+    const inventory = round2(assetsValue * 0.12);
+
+    metrics[period] = {
+      aktywaRazem: assetsValue,
+      kapitalWlasny: equityValue,
+      zobowiazania: liabilitiesValue,
+      debtRatio: round2(debtRatio),
+      equityRatio: round2(equityRatio),
+      leverage: round2(leverage),
+      debtToEquity: round2(debtToEquity),
+      solvencyRatio: round2(solvencyRatio),
+      naleznosciKrotkoterminowe: receivables,
+      zapasy: inventory,
+    };
+  });
+
+  return metrics;
+}
+
+function buildDemoIncomeStatementData(args: {
+  revenueBase: number;
+  operatingCostsBase: number;
+  operatingProfitBase: number;
+  grossProfitBase: number;
+  netProfitBase: number;
+}): IncomeStatementData {
+  const {
+    revenueBase,
+    operatingCostsBase,
+    operatingProfitBase,
+    grossProfitBase,
+    netProfitBase,
+  } = args;
+
+  const data = emptyIncomeStatementData();
+
+  const baseOperatingMargin =
+    revenueBase > 0
+      ? operatingProfitBase / revenueBase
+      : 0.12;
+
+  const baseNetMargin =
+    revenueBase > 0
+      ? netProfitBase / revenueBase
+      : 0.08;
+
+  PERIOD_KEYS.forEach((period, index) => {
+    const multiplier = PERIOD_MULTIPLIERS[period];
+    const revenueValue = round2(revenueBase * multiplier);
+
+    const operatingMargin = clamp(
+      baseOperatingMargin + (index - 2) * 0.005,
+      0.04,
+      0.35
+    );
+
+    const netMargin = clamp(
+      baseNetMargin + (index - 2) * 0.004,
+      0.02,
+      0.25
+    );
+
+    const operatingProfitValue = round2(revenueValue * operatingMargin);
+    const operatingCostsValue = round2(revenueValue - operatingProfitValue);
+
+    const grossProfitMargin = clamp(operatingMargin - 0.01, 0.03, 0.3);
+    const grossProfitValue =
+      grossProfitBase || grossProfitBase === 0
+        ? round2(revenueValue * grossProfitMargin)
+        : round2(operatingProfitValue * 0.96);
+
+    const netProfitValue = round2(revenueValue * netMargin);
+
+    data[period] = {
+      przychodyNettoZeSprzedazy: revenueValue,
+      kosztyDzialalnosciOperacyjnej: operatingCostsValue,
+      zyskStrataZDzialalnosciOperacyjnej: operatingProfitValue,
+      zyskStrataBrutto: grossProfitValue,
+      zyskStrataNetto: netProfitValue,
+    };
+  });
+
+  return data;
+}
+
 export default function DemoReportForm({
   reportName,
   onReportNameChange,
@@ -92,6 +221,25 @@ export default function DemoReportForm({
   const [operatingProfit, setOperatingProfit] = useState("");
   const [grossProfit, setGrossProfit] = useState("");
   const [netProfit, setNetProfit] = useState("");
+
+  function fillSampleData() {
+    if (!reportName.trim()) {
+      onReportNameChange("Raport demo DataGate");
+    }
+
+    if (!industry) {
+      onIndustryChange("manufacturing");
+    }
+
+    onAssetsChange("2440");
+    onEquityChange("1440");
+
+    setRevenue("3200");
+    setOperatingCosts("2780");
+    setOperatingProfit("420");
+    setGrossProfit("390");
+    setNetProfit("310");
+  }
 
   async function handleGenerate() {
     const user = auth.currentUser;
@@ -152,37 +300,19 @@ export default function DemoReportForm({
     setLoading(true);
 
     try {
-      const liabilities = assetsNumber - equityNumber;
-
-      const debtRatio = liabilities / assetsNumber;
-      const equityRatio = equityNumber / assetsNumber;
-      const leverage = assetsNumber / equityNumber;
-      const debtToEquity = liabilities / equityNumber;
-      const solvencyRatio =
-        liabilities === 0 ? undefined : assetsNumber / liabilities;
-
-      const metrics: Metrics = emptyMetrics();
-      metrics.t0 = {
-        aktywaRazem: assetsNumber,
-        kapitalWlasny: equityNumber,
-        zobowiazania: liabilities,
-        debtRatio,
-        equityRatio,
-        leverage,
-        debtToEquity,
-        solvencyRatio,
-      };
+      const metrics: Metrics = buildDemoBalanceMetrics(
+        assetsNumber,
+        equityNumber
+      );
 
       const incomeStatementData: IncomeStatementData =
-        emptyIncomeStatementData();
-
-      incomeStatementData.t0 = {
-        przychodyNettoZeSprzedazy: revenueNumber,
-        kosztyDzialalnosciOperacyjnej: operatingCostsNumber,
-        zyskStrataZDzialalnosciOperacyjnej: operatingProfitNumber,
-        zyskStrataBrutto: grossProfitNumber,
-        zyskStrataNetto: netProfitNumber,
-      };
+        buildDemoIncomeStatementData({
+          revenueBase: revenueNumber,
+          operatingCostsBase: operatingCostsNumber,
+          operatingProfitBase: operatingProfitNumber,
+          grossProfitBase: grossProfitNumber,
+          netProfitBase: netProfitNumber,
+        });
 
       const incomeMetrics: IncomeMetrics =
         calculateIncomeMetrics(incomeStatementData);
@@ -233,7 +363,8 @@ export default function DemoReportForm({
         <h2 className="text-2xl font-semibold">Demo danych</h2>
         <p className="mt-2 text-sm text-gray-600">
           Szybka ścieżka do wygenerowania przykładowego raportu. Dodaj dane
-          bilansu i uproszczone dane RZiS dla okresu t0.
+          bilansu i uproszczone dane RZiS, a system zbuduje demo dla wszystkich
+          okresów od t-2 do t+6.
         </p>
       </div>
 
@@ -272,13 +403,14 @@ export default function DemoReportForm({
         <div className="rounded-xl border border-dashed bg-gray-50 p-4">
           <p className="text-sm font-medium text-gray-700">Tryb demo</p>
           <p className="mt-1 text-sm text-gray-600">
-            Na podstawie bilansu i uproszczonego RZiS policzymy podstawowe
-            wskaźniki finansowe, rentowność oraz analizę łączną dla okresu t0.
+            Na podstawie wartości bazowych dla t0 system wygeneruje przykładowe
+            dane historyczne i prognozowane, aby raport był pełny także dla
+            RZiS i analizy łącznej.
           </p>
         </div>
 
         <div className="md:col-span-2 rounded-xl border border-slate-200 p-4">
-          <p className="text-sm font-semibold text-slate-800">Bilans — t0</p>
+          <p className="text-sm font-semibold text-slate-800">Bilans — baza t0</p>
 
           <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2">
             <div>
@@ -289,7 +421,7 @@ export default function DemoReportForm({
                 type="number"
                 value={assets}
                 onChange={(e) => onAssetsChange(e.target.value)}
-                placeholder="np. 1000"
+                placeholder="np. 2440"
                 className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
               />
             </div>
@@ -302,7 +434,7 @@ export default function DemoReportForm({
                 type="number"
                 value={equity}
                 onChange={(e) => onEquityChange(e.target.value)}
-                placeholder="np. 500"
+                placeholder="np. 1440"
                 className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
               />
             </div>
@@ -310,7 +442,7 @@ export default function DemoReportForm({
         </div>
 
         <div className="md:col-span-2 rounded-xl border border-slate-200 p-4">
-          <p className="text-sm font-semibold text-slate-800">RZiS — t0</p>
+          <p className="text-sm font-semibold text-slate-800">RZiS — baza t0</p>
 
           <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2">
             <div>
@@ -321,7 +453,7 @@ export default function DemoReportForm({
                 type="number"
                 value={revenue}
                 onChange={(e) => setRevenue(e.target.value)}
-                placeholder="np. 1500"
+                placeholder="np. 3200"
                 className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
               />
             </div>
@@ -334,7 +466,7 @@ export default function DemoReportForm({
                 type="number"
                 value={operatingCosts}
                 onChange={(e) => setOperatingCosts(e.target.value)}
-                placeholder="np. 1200"
+                placeholder="np. 2780"
                 className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
               />
             </div>
@@ -347,7 +479,7 @@ export default function DemoReportForm({
                 type="number"
                 value={operatingProfit}
                 onChange={(e) => setOperatingProfit(e.target.value)}
-                placeholder="np. 220"
+                placeholder="np. 420"
                 className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
               />
             </div>
@@ -360,7 +492,7 @@ export default function DemoReportForm({
                 type="number"
                 value={grossProfit}
                 onChange={(e) => setGrossProfit(e.target.value)}
-                placeholder="np. 210"
+                placeholder="np. 390"
                 className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
               />
             </div>
@@ -373,7 +505,7 @@ export default function DemoReportForm({
                 type="number"
                 value={netProfit}
                 onChange={(e) => setNetProfit(e.target.value)}
-                placeholder="np. 170"
+                placeholder="np. 310"
                 className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
               />
             </div>
@@ -382,6 +514,15 @@ export default function DemoReportForm({
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={fillSampleData}
+          disabled={loading}
+          className="rounded-lg border border-slate-300 px-5 py-2.5 font-medium text-slate-800 hover:bg-slate-50"
+        >
+          Wstaw przykładowe dane
+        </button>
+
         <button
           type="button"
           onClick={handleGenerate}
