@@ -2,7 +2,7 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { adminDb, adminAuth } from "@/lib/firebase-admin";
-import { parseBilansCsv } from "@/lib/parser/parseBilansCsv";
+import { parseBilansCsv, type BilansValues } from "@/lib/parser/parseBilansCsv";
 import {
   mapRzisValuesToIncomeStatementData,
   parseRzisCsv,
@@ -90,6 +90,34 @@ function quotaResponse(extra?: { details?: string }) {
    HELPERS
 ===================================================== */
 
+const BALANCE_PERIOD_KEYS = [
+  "tMinus2",
+  "tMinus1",
+  "t0",
+  "t1",
+  "t2",
+  "t3",
+  "t4",
+  "t5",
+  "t6",
+] as const;
+
+type BalancePeriodKey = (typeof BALANCE_PERIOD_KEYS)[number];
+
+const BALANCE_PERIOD_LABELS: Record<BalancePeriodKey, string> = {
+  tMinus2: "t-2",
+  tMinus1: "t-1",
+  t0: "t0",
+  t1: "t+1",
+  t2: "t+2",
+  t3: "t+3",
+  t4: "t+4",
+  t5: "t+5",
+  t6: "t+6",
+};
+
+const BALANCE_EPSILON = 0.01;
+
 function normalizeReportName(value: unknown, fallback: string) {
   if (typeof value !== "string") return fallback;
 
@@ -106,6 +134,92 @@ function isCsvFile(file: File | null) {
     file.type === "text/csv" ||
     fileName.toLowerCase().endsWith(".csv")
   );
+}
+
+function safeNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function isPeriodRecord(value: unknown): value is Record<BalancePeriodKey, number> {
+  if (!value || typeof value !== "object") return false;
+
+  return BALANCE_PERIOD_KEYS.every((key) => key in (value as Record<string, unknown>));
+}
+
+function isBilansValues(value: unknown): value is BilansValues {
+  if (!value || typeof value !== "object") return false;
+
+  const obj = value as Record<string, unknown>;
+
+  return (
+    isPeriodRecord(obj.aktywaRazem) &&
+    isPeriodRecord(obj.kapitalWlasny) &&
+    isPeriodRecord(obj.zobowiazania)
+  );
+}
+
+function validateBalancedSheet(data: BilansValues) {
+  const invalidPeriods: Array<{
+    period: BalancePeriodKey;
+    assets: number;
+    equity: number;
+    liabilities: number;
+    expectedLiabilitiesAndEquity: number;
+    difference: number;
+  }> = [];
+
+  for (const period of BALANCE_PERIOD_KEYS) {
+    const assets = safeNumber(data.aktywaRazem?.[period]);
+    const equity = safeNumber(data.kapitalWlasny?.[period]);
+    const liabilities = safeNumber(data.zobowiazania?.[period]);
+    const liabilitiesAndEquity = equity + liabilities;
+    const difference = assets - liabilitiesAndEquity;
+
+    if (Math.abs(difference) > BALANCE_EPSILON) {
+      invalidPeriods.push({
+        period,
+        assets,
+        equity,
+        liabilities,
+        expectedLiabilitiesAndEquity: liabilitiesAndEquity,
+        difference,
+      });
+    }
+  }
+
+  return {
+    isValid: invalidPeriods.length === 0,
+    invalidPeriods,
+  };
+}
+
+function buildBalanceValidationError(data: BilansValues) {
+  const validation = validateBalancedSheet(data);
+
+  if (validation.isValid) {
+    return null;
+  }
+
+  const details = validation.invalidPeriods
+    .map((item) => {
+      const label = BALANCE_PERIOD_LABELS[item.period];
+      return `${label}: aktywa=${item.assets}, pasywa=${item.expectedLiabilitiesAndEquity}, różnica=${item.difference}`;
+    })
+    .join(" | ");
+
+  return {
+    error: "Bilans nie jest zbilansowany. Aktywa muszą być równe sumie kapitału własnego i zobowiązań.",
+    details,
+    invalidPeriods: validation.invalidPeriods.map((item) => ({
+      period: item.period,
+      periodLabel: BALANCE_PERIOD_LABELS[item.period],
+      assets: item.assets,
+      equity: item.equity,
+      liabilities: item.liabilities,
+      liabilitiesAndEquity: item.expectedLiabilitiesAndEquity,
+      difference: item.difference,
+    })),
+  };
 }
 
 /* =====================================================
@@ -139,6 +253,24 @@ export async function POST(req: Request) {
           { error: "Brak poprawnych danych metrics." },
           { status: 400 }
         );
+      }
+
+      if (rawBalanceData !== undefined) {
+        if (!isBilansValues(rawBalanceData)) {
+          return NextResponse.json(
+            {
+              error:
+                "Nieprawidłowe rawBalanceData. Oczekiwano aktywaRazem, kapitalWlasny i zobowiazania dla wszystkich okresów.",
+            },
+            { status: 400 }
+          );
+        }
+
+        const balanceError = buildBalanceValidationError(rawBalanceData);
+
+        if (balanceError) {
+          return NextResponse.json(balanceError, { status: 400 });
+        }
       }
 
       const finalName = normalizeReportName(name, "Raport");
@@ -245,6 +377,8 @@ export async function POST(req: Request) {
 
     if (balanceFile) {
       const balanceCsvText = await balanceFile.text();
+      console.log("UPLOADED BALANCE FILE NAME:", balanceFile.name);
+console.log("UPLOADED BALANCE CSV PREVIEW:", balanceCsvText.slice(0, 1200));
 
       if (!balanceCsvText.trim()) {
         return NextResponse.json(
@@ -254,6 +388,14 @@ export async function POST(req: Request) {
       }
 
       const bilansValues = parseBilansCsv(balanceCsvText);
+      console.log("PARSED BILANS VALUES:", JSON.stringify(bilansValues, null, 2));
+      const balanceError = buildBalanceValidationError(bilansValues);
+      console.log("BALANCE VALIDATION RESULT:", balanceError);
+
+      if (balanceError) {
+        return NextResponse.json(balanceError, { status: 400 });
+      }
+
       balanceMetrics = calculateMetrics(bilansValues);
 
       payload.metrics = balanceMetrics;

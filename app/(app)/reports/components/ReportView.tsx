@@ -712,7 +712,7 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
@@ -968,7 +968,7 @@ function TrendLineChart({
 
   return (
     <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-      <div className="h-48">
+      <div className="h-40 md:h-48">
         <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full">
           <polyline
             fill="none"
@@ -989,7 +989,7 @@ function TrendLineChart({
         </svg>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-3 md:grid-cols-5 lg:grid-cols-9">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9">
         {normalized.map((point, i) => (
           <div
             key={`${periods[i]}-${i}`}
@@ -1216,6 +1216,40 @@ function MetricCard({
   );
 }
 
+function SummaryMetricCard({
+  title,
+  value,
+  tone,
+  helper,
+}: {
+  title: string;
+  value: string;
+  tone?: ValueTone;
+  helper?: string;
+}) {
+  const toneClasses = tone ? getToneClasses(tone) : null;
+
+  return (
+    <div
+      className={`rounded-2xl border bg-white p-4 ${
+        toneClasses ? toneClasses.border : "border-slate-200"
+      }`}
+    >
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+        {title}
+      </p>
+      <p
+        className={`mt-2 text-xl font-bold ${
+          toneClasses ? toneClasses.text : "text-slate-900"
+        }`}
+      >
+        {value}
+      </p>
+      {helper && <p className="mt-1 text-xs text-slate-500">{helper}</p>}
+    </div>
+  );
+}
+
 /* ================= COMPONENT ================= */
 
 interface ReportViewProps {
@@ -1358,14 +1392,8 @@ export default function ReportView({
       debtRatio: comparePeriods(current.debtRatio, prev?.debtRatio),
       equityRatio: comparePeriods(current.equityRatio, prev?.equityRatio),
       leverage: comparePeriods(current.leverage, prev?.leverage),
-      debtToEquity: comparePeriods(
-        current.debtToEquity,
-        prev?.debtToEquity
-      ),
-      solvencyRatio: comparePeriods(
-        current.solvencyRatio,
-        prev?.solvencyRatio
-      ),
+      debtToEquity: comparePeriods(current.debtToEquity, prev?.debtToEquity),
+      solvencyRatio: comparePeriods(current.solvencyRatio, prev?.solvencyRatio),
     };
   }, [current, prev]);
 
@@ -1385,10 +1413,7 @@ export default function ReportView({
         currentIncome?.operatingMargin,
         prevIncome?.operatingMargin
       ),
-      netMargin: comparePeriods(
-        currentIncome?.netMargin,
-        prevIncome?.netMargin
-      ),
+      netMargin: comparePeriods(currentIncome?.netMargin, prevIncome?.netMargin),
       ros: comparePeriods(currentIncome?.ros, prevIncome?.ros),
     };
   }, [currentIncome, prevIncome]);
@@ -1524,21 +1549,17 @@ export default function ReportView({
     ? buildIncomeTrend(incomeMetrics, selectedIncomeTrendMetric, PERIODS)
     : [];
   const combinedTrendValues = combinedMetrics
-    ? buildCombinedTrend(
-        combinedMetrics,
-        selectedCombinedTrendMetric,
-        PERIODS
-      )
+    ? buildCombinedTrend(combinedMetrics, selectedCombinedTrendMetric, PERIODS)
     : [];
 
   const hasIncomeMetrics = Boolean(incomeMetrics);
   const hasCombinedMetrics = Boolean(combinedMetrics);
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-3">
+    <div className="mx-auto max-w-[1600px] space-y-6">
+      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0 space-y-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
                 DataGate Insight
@@ -1576,7 +1597,7 @@ export default function ReportView({
             </p>
           </div>
 
-          <div className="w-full max-w-xs">
+          <div className="w-full xl:max-w-xs">
             <label className="mb-2 block text-sm font-medium text-slate-600">
               Wybrany okres
             </label>
@@ -1599,26 +1620,144 @@ export default function ReportView({
 
       {activeTab === "balance" && (
         <>
-          <div className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
+          <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
             <HealthScoreCard
               score={healthScore}
               breakdown={healthDetails.breakdown}
             />
 
-            <SectionCard
-              title="Podsumowanie"
-              subtitle="Najważniejsze wnioski dla wybranego okresu."
-            >
-              <div className="grid gap-3 md:grid-cols-3">
-                {balanceInsights.map((insight, index) => (
-                  <ExecutiveInsightCard
-                    key={`${insight.title}-${index}`}
-                    title={insight.title}
-                    tone={insight.tone}
+            <div className="space-y-6">
+              <SectionCard
+                title="Podsumowanie"
+                subtitle="Najważniejsze wnioski dla wybranego okresu."
+              >
+                <div className="grid gap-3 xl:grid-cols-3">
+                  {balanceInsights.map((insight, index) => (
+                    <ExecutiveInsightCard
+                      key={`${insight.title}-${index}`}
+                      title={insight.title}
+                      tone={insight.tone}
+                    />
+                  ))}
+                </div>
+
+                <div className="mt-5 grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+                  <SummaryMetricCard
+                    title="Aktywa razem"
+                    value={formatCurrency(current.aktywaRazem)}
+                    helper={cmp.aktywaRazem.text}
                   />
-                ))}
-              </div>
-            </SectionCard>
+                  <SummaryMetricCard
+                    title="Kapitał własny"
+                    value={formatCurrency(current.kapitalWlasny)}
+                    helper={cmp.kapitalWlasny.text}
+                  />
+                  <SummaryMetricCard
+                    title="Zadłużenie"
+                    value={formatPercent(current.debtRatio)}
+                    tone={getMetricTone("debtRatio", current.debtRatio)}
+                    helper={benchDebt.line2 ?? cmp.debtRatio.text}
+                  />
+                  <SummaryMetricCard
+                    title="Wypłacalność"
+                    value={formatNumber(current.solvencyRatio)}
+                    tone={getMetricTone("solvencyRatio", current.solvencyRatio)}
+                    helper={benchSolv.line2 ?? cmp.solvencyRatio.text}
+                  />
+                </div>
+              </SectionCard>
+
+              <SectionCard
+                title="Kluczowe wskaźniki bilansowe"
+                subtitle="Szczegółowy podgląd wartości dla wybranego okresu wraz ze zmianą względem poprzedniego."
+              >
+                <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                  <MetricCard
+                    title="Aktywa razem"
+                    value={formatCurrency(current.aktywaRazem)}
+                    change={cmp.aktywaRazem.text}
+                    changeColor={cmp.aktywaRazem.color}
+                    trend={buildTrend(metrics, "aktywaRazem", PERIODS)}
+                  />
+
+                  <MetricCard
+                    title="Kapitał własny"
+                    value={formatCurrency(current.kapitalWlasny)}
+                    change={cmp.kapitalWlasny.text}
+                    changeColor={cmp.kapitalWlasny.color}
+                    trend={buildTrend(metrics, "kapitalWlasny", PERIODS)}
+                  />
+
+                  <MetricCard
+                    title="Zobowiązania"
+                    value={formatCurrency(current.zobowiazania)}
+                    change={cmp.zobowiazania.text}
+                    changeColor={cmp.zobowiazania.color}
+                    trend={buildTrend(metrics, "zobowiazania", PERIODS)}
+                  />
+
+                  <MetricCard
+                    title="Wskaźnik zadłużenia"
+                    value={formatPercent(current.debtRatio)}
+                    tone={getMetricTone("debtRatio", current.debtRatio)}
+                    change={cmp.debtRatio.text}
+                    changeColor={cmp.debtRatio.color}
+                    trend={buildTrend(metrics, "debtRatio", PERIODS)}
+                    benchmarkLine1={benchDebt.line1}
+                    benchmarkLine2={benchDebt.line2}
+                    benchmarkTone={benchDebt.tone}
+                  />
+
+                  <MetricCard
+                    title="Wskaźnik kapitału własnego"
+                    value={formatPercent(current.equityRatio)}
+                    tone={getMetricTone("equityRatio", current.equityRatio)}
+                    change={cmp.equityRatio.text}
+                    changeColor={cmp.equityRatio.color}
+                    trend={buildTrend(metrics, "equityRatio", PERIODS)}
+                    benchmarkLine1={benchEquity.line1}
+                    benchmarkLine2={benchEquity.line2}
+                    benchmarkTone={benchEquity.tone}
+                  />
+
+                  <MetricCard
+                    title="Dźwignia finansowa"
+                    value={formatNumber(current.leverage)}
+                    tone={getMetricTone("leverage", current.leverage)}
+                    change={cmp.leverage.text}
+                    changeColor={cmp.leverage.color}
+                    trend={buildTrend(metrics, "leverage", PERIODS)}
+                    benchmarkLine1={benchLev.line1}
+                    benchmarkLine2={benchLev.line2}
+                    benchmarkTone={benchLev.tone}
+                  />
+
+                  <MetricCard
+                    title="Dług / Kapitał własny"
+                    value={formatNumber(current.debtToEquity)}
+                    tone={getMetricTone("debtToEquity", current.debtToEquity)}
+                    change={cmp.debtToEquity.text}
+                    changeColor={cmp.debtToEquity.color}
+                    trend={buildTrend(metrics, "debtToEquity", PERIODS)}
+                    benchmarkLine1={benchD2E.line1}
+                    benchmarkLine2={benchD2E.line2}
+                    benchmarkTone={benchD2E.tone}
+                  />
+
+                  <MetricCard
+                    title="Wypłacalność"
+                    value={formatNumber(current.solvencyRatio)}
+                    tone={getMetricTone("solvencyRatio", current.solvencyRatio)}
+                    change={cmp.solvencyRatio.text}
+                    changeColor={cmp.solvencyRatio.color}
+                    trend={buildTrend(metrics, "solvencyRatio", PERIODS)}
+                    benchmarkLine1={benchSolv.line1}
+                    benchmarkLine2={benchSolv.line2}
+                    benchmarkTone={benchSolv.tone}
+                  />
+                </div>
+              </SectionCard>
+            </div>
           </div>
 
           <SectionCard
@@ -1663,7 +1802,7 @@ export default function ReportView({
               />
             }
           >
-            <div className="grid gap-4 xl:grid-cols-2">
+            <div className="grid gap-4 2xl:grid-cols-2">
               <BenchmarkRangeBar
                 title="Wskaźnik zadłużenia"
                 value={current.debtRatio}
@@ -1702,97 +1841,6 @@ export default function ReportView({
                 formatter={formatNumber}
                 stat={getBenchmarkStat(currentBenchmark, "solvencyRatio")}
                 tone={benchSolv.tone}
-              />
-            </div>
-          </SectionCard>
-
-          <SectionCard
-            title="Kluczowe wskaźniki bilansowe"
-            subtitle="Szczegółowy podgląd wartości dla wybranego okresu wraz ze zmianą względem poprzedniego."
-          >
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <MetricCard
-                title="Aktywa razem"
-                value={formatCurrency(current.aktywaRazem)}
-                change={cmp.aktywaRazem.text}
-                changeColor={cmp.aktywaRazem.color}
-                trend={buildTrend(metrics, "aktywaRazem", PERIODS)}
-              />
-
-              <MetricCard
-                title="Kapitał własny"
-                value={formatCurrency(current.kapitalWlasny)}
-                change={cmp.kapitalWlasny.text}
-                changeColor={cmp.kapitalWlasny.color}
-                trend={buildTrend(metrics, "kapitalWlasny", PERIODS)}
-              />
-
-              <MetricCard
-                title="Zobowiązania"
-                value={formatCurrency(current.zobowiazania)}
-                change={cmp.zobowiazania.text}
-                changeColor={cmp.zobowiazania.color}
-                trend={buildTrend(metrics, "zobowiazania", PERIODS)}
-              />
-
-              <MetricCard
-                title="Wskaźnik zadłużenia"
-                value={formatPercent(current.debtRatio)}
-                tone={getMetricTone("debtRatio", current.debtRatio)}
-                change={cmp.debtRatio.text}
-                changeColor={cmp.debtRatio.color}
-                trend={buildTrend(metrics, "debtRatio", PERIODS)}
-                benchmarkLine1={benchDebt.line1}
-                benchmarkLine2={benchDebt.line2}
-                benchmarkTone={benchDebt.tone}
-              />
-
-              <MetricCard
-                title="Wskaźnik kapitału własnego"
-                value={formatPercent(current.equityRatio)}
-                tone={getMetricTone("equityRatio", current.equityRatio)}
-                change={cmp.equityRatio.text}
-                changeColor={cmp.equityRatio.color}
-                trend={buildTrend(metrics, "equityRatio", PERIODS)}
-                benchmarkLine1={benchEquity.line1}
-                benchmarkLine2={benchEquity.line2}
-                benchmarkTone={benchEquity.tone}
-              />
-
-              <MetricCard
-                title="Dźwignia finansowa"
-                value={formatNumber(current.leverage)}
-                tone={getMetricTone("leverage", current.leverage)}
-                change={cmp.leverage.text}
-                changeColor={cmp.leverage.color}
-                trend={buildTrend(metrics, "leverage", PERIODS)}
-                benchmarkLine1={benchLev.line1}
-                benchmarkLine2={benchLev.line2}
-                benchmarkTone={benchLev.tone}
-              />
-
-              <MetricCard
-                title="Dług / Kapitał własny"
-                value={formatNumber(current.debtToEquity)}
-                tone={getMetricTone("debtToEquity", current.debtToEquity)}
-                change={cmp.debtToEquity.text}
-                changeColor={cmp.debtToEquity.color}
-                trend={buildTrend(metrics, "debtToEquity", PERIODS)}
-                benchmarkLine1={benchD2E.line1}
-                benchmarkLine2={benchD2E.line2}
-                benchmarkTone={benchD2E.tone}
-              />
-
-              <MetricCard
-                title="Wypłacalność"
-                value={formatNumber(current.solvencyRatio)}
-                tone={getMetricTone("solvencyRatio", current.solvencyRatio)}
-                change={cmp.solvencyRatio.text}
-                changeColor={cmp.solvencyRatio.color}
-                trend={buildTrend(metrics, "solvencyRatio", PERIODS)}
-                benchmarkLine1={benchSolv.line1}
-                benchmarkLine2={benchSolv.line2}
-                benchmarkTone={benchSolv.tone}
               />
             </div>
           </SectionCard>
@@ -1861,7 +1909,7 @@ export default function ReportView({
                 title="Kluczowe wskaźniki RZiS"
                 subtitle="Wyniki finansowe i rentowność dla wybranego okresu."
               >
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
                   <MetricCard
                     title="Przychody"
                     value={formatCurrency(currentIncome?.revenue)}
@@ -1922,9 +1970,7 @@ export default function ReportView({
                     title="Wynik netto"
                     value={formatCurrency(currentIncome?.netProfit)}
                     tone={
-                      (currentIncome?.netProfit ?? 0) >= 0
-                        ? "green"
-                        : "red"
+                      (currentIncome?.netProfit ?? 0) >= 0 ? "green" : "red"
                     }
                     change={incomeCmp.netProfit.text}
                     changeColor={incomeCmp.netProfit.color}

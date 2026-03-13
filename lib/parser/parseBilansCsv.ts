@@ -31,15 +31,42 @@ const PERIOD_ALIASES: Array<{
   key: MetricsPeriodKey;
   patterns: string[];
 }> = [
-  { key: "tMinus2", patterns: ["t-2", "t -2", "t - 2", "tminus2", "okres poprzedzajacy t -2"] },
-  { key: "tMinus1", patterns: ["t-1", "t -1", "t - 1", "tminus1", "okres poprzedzajacy t -1"] },
-  { key: "t0", patterns: ["t0", "t-0", "t 0", "okres biezacy t-0", "okres biezacy t0"] },
-  { key: "t1", patterns: ["t+1", "t1", "t +1", "t + 1", "okres prognozowany t+1"] },
-  { key: "t2", patterns: ["t+2", "t2", "t +2", "t + 2", "okres prognozowany t+2"] },
-  { key: "t3", patterns: ["t+3", "t3", "t +3", "t + 3", "okres prognozowany t+3"] },
-  { key: "t4", patterns: ["t+4", "t4", "t +4", "t + 4", "okres prognozowany t+4"] },
-  { key: "t5", patterns: ["t+5", "t5", "t +5", "t + 5", "okres prognozowany t+5"] },
-  { key: "t6", patterns: ["t+6", "t6", "t +6", "t + 6", "okres prognozowany t+6"] },
+  {
+    key: "tMinus2",
+    patterns: ["t-2", "t -2", "t - 2", "tminus2", "okres poprzedzajacy t -2"],
+  },
+  {
+    key: "tMinus1",
+    patterns: ["t-1", "t -1", "t - 1", "tminus1", "okres poprzedzajacy t -1"],
+  },
+  {
+    key: "t0",
+    patterns: ["t0", "t-0", "t 0", "okres biezacy t-0", "okres biezacy t0"],
+  },
+  {
+    key: "t1",
+    patterns: ["t+1", "t1", "t +1", "t + 1", "okres prognozowany t+1"],
+  },
+  {
+    key: "t2",
+    patterns: ["t+2", "t2", "t +2", "t + 2", "okres prognozowany t+2"],
+  },
+  {
+    key: "t3",
+    patterns: ["t+3", "t3", "t +3", "t + 3", "okres prognozowany t+3"],
+  },
+  {
+    key: "t4",
+    patterns: ["t+4", "t4", "t +4", "t + 4", "okres prognozowany t+4"],
+  },
+  {
+    key: "t5",
+    patterns: ["t+5", "t5", "t +5", "t + 5", "okres prognozowany t+5"],
+  },
+  {
+    key: "t6",
+    patterns: ["t+6", "t6", "t +6", "t + 6", "okres prognozowany t+6"],
+  },
 ];
 
 function emptyPeriods(): PeriodValues {
@@ -58,6 +85,8 @@ function emptyPeriods(): PeriodValues {
 
 function normalizeText(value: string): string {
   return value
+    .replace(/ł/g, "l")
+    .replace(/Ł/g, "L")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/"/g, "")
@@ -153,7 +182,9 @@ function findHeaderRowIndex(rows: string[][]): number {
   return -1;
 }
 
-function findPeriodColumnMap(headerRow: string[]): Partial<Record<MetricsPeriodKey, number>> {
+function findPeriodColumnMap(
+  headerRow: string[]
+): Partial<Record<MetricsPeriodKey, number>> {
   const map: Partial<Record<MetricsPeriodKey, number>> = {};
 
   headerRow.forEach((cell, index) => {
@@ -170,11 +201,22 @@ function findPeriodColumnMap(headerRow: string[]): Partial<Record<MetricsPeriodK
 }
 
 function extractRowLabel(cols: string[], firstPeriodColumnIndex: number): string {
-  const labelCells = cols
+  const descriptiveCells = cols
     .slice(0, firstPeriodColumnIndex)
-    .filter((cell) => normalizeText(cell) !== "");
+    .filter((_, index) => index !== 0 && index !== 2)
+    .map((cell) => normalizeText(cell))
+    .filter(Boolean);
 
-  return normalizeText(labelCells.join(" "));
+  if (descriptiveCells.length > 0) {
+    return descriptiveCells.join(" ");
+  }
+
+  const fallbackCells = cols
+    .slice(0, firstPeriodColumnIndex)
+    .map((cell) => normalizeText(cell))
+    .filter(Boolean);
+
+  return fallbackCells.join(" ");
 }
 
 function isAssetsTotal(label: string): boolean {
@@ -189,7 +231,8 @@ function isEquityTotal(label: string): boolean {
   return (
     label.includes("kapital (fundusz) wlasny") ||
     label.includes("kapital fundusz wlasny") ||
-    label.includes("kapital wlasny")
+    label.includes("kapital wlasny") ||
+    label.includes("fundusz wlasny")
   );
 }
 
@@ -216,25 +259,8 @@ function readPeriodsFromRow(
   return result;
 }
 
-function fillMissingEquity(
-  aktywaRazem: PeriodValues,
-  kapitalWlasny: PeriodValues,
-  zobowiazania: PeriodValues
-): PeriodValues {
-  const result = { ...kapitalWlasny };
-
-  (Object.keys(result) as MetricsPeriodKey[]).forEach((periodKey) => {
-    const assets = aktywaRazem[periodKey];
-    const equity = kapitalWlasny[periodKey];
-    const liabilities = zobowiazania[periodKey];
-
-    if (equity === 0 && assets > 0) {
-      const calculated = assets - liabilities;
-      result[periodKey] = calculated > 0 ? calculated : 0;
-    }
-  });
-
-  return result;
+function hasAnyNonZeroValue(periods: PeriodValues): boolean {
+  return Object.values(periods).some((value) => value !== 0);
 }
 
 export function parseBilansCsv(csv: string): BilansValues {
@@ -256,23 +282,31 @@ export function parseBilansCsv(csv: string): BilansValues {
   const headerRowIndex = findHeaderRowIndex(rows);
 
   if (headerRowIndex === -1) {
-    throw new Error("Nie znaleziono w pliku wiersza z okresami (t-2, t-1, t0, t1...).");
+    throw new Error(
+      "Nie znaleziono w pliku wiersza z okresami (t-2, t-1, t0, t1...)."
+    );
   }
 
   const headerRow = rows[headerRowIndex];
   const columnMap = findPeriodColumnMap(headerRow);
 
-  const firstPeriodColumnIndex = Math.min(
-    ...Object.values(columnMap).filter((value): value is number => typeof value === "number")
+  const periodColumnIndexes = Object.values(columnMap).filter(
+    (value): value is number => typeof value === "number"
   );
 
-  if (!Number.isFinite(firstPeriodColumnIndex)) {
+  if (periodColumnIndexes.length === 0) {
     throw new Error("Nie udało się rozpoznać kolumn okresów w pliku CSV.");
   }
+
+  const firstPeriodColumnIndex = Math.min(...periodColumnIndexes);
 
   let aktywaRazem = emptyPeriods();
   let kapitalWlasny = emptyPeriods();
   let zobowiazania = emptyPeriods();
+
+  let foundAssets = false;
+  let foundEquity = false;
+  let foundLiabilities = false;
 
   for (let i = headerRowIndex + 1; i < rows.length; i++) {
     const cols = rows[i];
@@ -282,25 +316,38 @@ export function parseBilansCsv(csv: string): BilansValues {
 
     if (isAssetsTotal(label)) {
       aktywaRazem = readPeriodsFromRow(cols, columnMap);
+      foundAssets = true;
       continue;
     }
 
     if (isEquityTotal(label)) {
       kapitalWlasny = readPeriodsFromRow(cols, columnMap);
+      foundEquity = true;
       continue;
     }
 
     if (isLiabilitiesTotal(label)) {
       zobowiazania = readPeriodsFromRow(cols, columnMap);
+      foundLiabilities = true;
       continue;
     }
   }
 
-  kapitalWlasny = fillMissingEquity(
-    aktywaRazem,
-    kapitalWlasny,
-    zobowiazania
-  );
+  if (!foundAssets || !hasAnyNonZeroValue(aktywaRazem)) {
+    throw new Error("Nie znaleziono wiersza 'Aktywa razem' w pliku bilansu.");
+  }
+
+  if (!foundEquity || !hasAnyNonZeroValue(kapitalWlasny)) {
+    throw new Error(
+      "Nie znaleziono wiersza 'Kapitał (fundusz) własny' w pliku bilansu."
+    );
+  }
+
+  if (!foundLiabilities || !hasAnyNonZeroValue(zobowiazania)) {
+    throw new Error(
+      "Nie znaleziono wiersza 'Zobowiązania i rezerwy na zobowiązania' w pliku bilansu."
+    );
+  }
 
   return {
     aktywaRazem,
