@@ -5,6 +5,7 @@ import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { useParams } from "next/navigation";
 import ReportView from "../components/ReportView";
+import { downloadReportPdf } from "@/lib/pdf/downloadReportPdf";
 import type {
   CombinedMetrics,
   IncomeMetrics,
@@ -37,17 +38,23 @@ type Report = {
 
 export default function ReportPage() {
   const params = useParams();
-  const reportId = params?.id as string;
+  const reportIdRaw = params?.id;
+  const reportId =
+    typeof reportIdRaw === "string"
+      ? reportIdRaw
+      : Array.isArray(reportIdRaw)
+      ? reportIdRaw[0]
+      : undefined;
 
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState<string>("");
 
-  const [benchmark, setBenchmark] =
-    useState<BenchmarkResponse | null>(null);
-  const [benchmarkLoading, setBenchmarkLoading] =
-    useState(false);
+  const [benchmark, setBenchmark] = useState<BenchmarkResponse | null>(null);
+  const [benchmarkLoading, setBenchmarkLoading] = useState(false);
 
-  const [apiDebug, setApiDebug] = useState<any>(null);
+  const [apiDebug, setApiDebug] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     if (!reportId) return;
@@ -71,9 +78,6 @@ export default function ReportPage() {
 
         const token = await user.getIdToken();
 
-        /* ============================
-           1) FULL REPORT
-        ============================ */
         const res = await fetch(`/api/reports/${reportId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -104,9 +108,6 @@ export default function ReportPage() {
         setReport(full);
         setLoading(false);
 
-        /* ============================
-           2) INITIAL BENCHMARK
-        ============================ */
         setBenchmarkLoading(true);
 
         const bRes = await fetch(
@@ -123,7 +124,7 @@ export default function ReportPage() {
 
         if (!bRes.ok) {
           if (!cancelled) {
-            setApiDebug((prev: any) => ({
+            setApiDebug((prev) => ({
               ...(prev ?? {}),
               benchmark: {
                 step: "GET /api/reports/[id]/benchmark",
@@ -141,19 +142,21 @@ export default function ReportPage() {
         if (cancelled) return;
 
         setBenchmark(bData ?? null);
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (cancelled) return;
 
         setApiDebug({
           step: "catch",
-          error: e?.message ?? String(e),
+          error: e instanceof Error ? e.message : String(e),
         });
 
         setReport(null);
         setBenchmark(null);
         setLoading(false);
       } finally {
-        if (!cancelled) setBenchmarkLoading(false);
+        if (!cancelled) {
+          setBenchmarkLoading(false);
+        }
       }
     });
 
@@ -163,18 +166,39 @@ export default function ReportPage() {
     };
   }, [reportId]);
 
+  async function handleDownloadPdf() {
+    const currentReportId = reportId;
+
+    if (!currentReportId || !report?.metrics) return;
+
+    try {
+      setDownloadingPdf(true);
+      setPdfError("");
+
+      await downloadReportPdf({
+        reportId: currentReportId,
+        reportName: report.name,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Nie udało się pobrać PDF.";
+
+      console.error("Błąd generowania PDF:", error);
+      setPdfError(message);
+      alert(message);
+    } finally {
+      setDownloadingPdf(false);
+    }
+  }
+
   if (loading) {
-    return (
-      <div className="h-40 animate-pulse rounded-2xl bg-gray-200" />
-    );
+    return <div className="h-40 animate-pulse rounded-2xl bg-gray-200" />;
   }
 
   if (!report) {
     return (
       <div className="space-y-2 text-sm">
-        <p className="font-semibold">
-          Brak danych raportu (debug)
-        </p>
+        <p className="font-semibold">Brak danych raportu (debug)</p>
         <p>reportId: {String(reportId)}</p>
         <pre className="whitespace-pre-wrap rounded-xl bg-gray-100 p-3 text-xs">
           {JSON.stringify(apiDebug, null, 2)}
@@ -198,14 +222,37 @@ export default function ReportPage() {
   }
 
   return (
-    <ReportView
-      metrics={report.metrics}
-      incomeMetrics={report.incomeMetrics}
-      combinedMetrics={report.combinedMetrics}
-      industry={report.industry}
-      reportName={report.name}
-      benchmark={benchmark}
-      benchmarkLoading={benchmarkLoading}
-    />
+    <div className="space-y-4">
+      <div className="flex flex-col items-end gap-2">
+        <button
+          type="button"
+          onClick={handleDownloadPdf}
+          disabled={downloadingPdf}
+          className={`rounded-xl px-4 py-2 text-sm font-medium text-white transition ${
+            downloadingPdf
+              ? "cursor-not-allowed bg-slate-400"
+              : "bg-slate-900 hover:bg-slate-800"
+          }`}
+        >
+          {downloadingPdf ? "Generowanie PDF..." : "Pobierz PDF"}
+        </button>
+
+        {pdfError ? (
+          <p className="max-w-xl text-right text-sm text-red-600">{pdfError}</p>
+        ) : null}
+      </div>
+
+      <div className="bg-white">
+        <ReportView
+          metrics={report.metrics}
+          incomeMetrics={report.incomeMetrics}
+          combinedMetrics={report.combinedMetrics}
+          industry={report.industry}
+          reportName={report.name}
+          benchmark={benchmark}
+          benchmarkLoading={benchmarkLoading}
+        />
+      </div>
+    </div>
   );
 }
