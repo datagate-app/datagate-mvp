@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Sidebar from "@/components/sidebar";
 import { AuthGuard } from "@/components/auth-guard";
 import { UserMenu } from "@/components/user-menu";
@@ -14,6 +15,8 @@ type Props = {
 };
 
 export default function AppLayout({ children }: Props) {
+  const currentYear = new Date().getFullYear();
+
   return (
     <AuthGuard>
       <div className="flex min-h-screen">
@@ -36,6 +39,33 @@ export default function AppLayout({ children }: Props) {
           </header>
 
           <main className="flex-1 bg-gray-100 p-8">{children}</main>
+
+          <footer className="border-t bg-white px-6 py-4">
+            <div className="flex flex-col gap-3 text-sm text-gray-600 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span>© {currentYear}</span>
+                <span>DataGate</span>
+                <span className="text-gray-400">•</span>
+                <span>Wersja 0.4.1 MVP</span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4">
+                <Link
+                  href="#"
+                  className="transition hover:text-gray-900"
+                >
+                  Regulamin
+                </Link>
+
+                <Link
+                  href="#"
+                  className="transition hover:text-gray-900"
+                >
+                  Polityka prywatności
+                </Link>
+              </div>
+            </div>
+          </footer>
         </div>
       </div>
     </AuthGuard>
