@@ -955,13 +955,277 @@ export default function ReportPrintView({
             grid-template-columns: 1fr;
           }
         }
+
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 12mm 10mm;
+          }
+
+          html,
+          body {
+            width: auto;
+            min-height: auto;
+            background: #ffffff !important;
+            color: #111827;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .print-root {
+            width: 190mm;
+            max-width: none;
+            margin: 0 auto;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            font-size: 9.5pt;
+            line-height: 1.35;
+          }
+
+          .report-header,
+          .panel,
+          .section-card,
+          .kpi-card {
+            box-shadow: none;
+            border-color: #d6dde8;
+            border-radius: 6px;
+          }
+
+          .report-header {
+            position: relative;
+            overflow: hidden;
+            padding: 6.5mm 8mm 7mm;
+            margin-bottom: 5mm;
+            border-top: 0;
+            background: linear-gradient(180deg, #f8fafc 0%, #ffffff 58%);
+          }
+
+          .report-header::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1.7mm;
+            background: #0f172a;
+          }
+
+          .header-top {
+            gap: 10mm;
+            margin-bottom: 6mm;
+            padding-top: 2mm;
+          }
+
+          .brand-logo {
+            display: block;
+            width: 58mm;
+            max-height: 16mm;
+            object-fit: contain;
+            object-position: left center;
+          }
+
+          .header-badges {
+            max-width: 96mm;
+            gap: 2mm;
+            padding-top: 1mm;
+          }
+
+          .meta-pill {
+            border-radius: 4px;
+            padding: 2mm 3mm;
+            font-size: 8pt;
+            line-height: 1.2;
+          }
+
+          .eyebrow {
+            font-size: 7.5pt;
+            margin-bottom: 2.4mm;
+          }
+
+          .report-title {
+            font-size: 20pt;
+            line-height: 1.15;
+            margin-bottom: 2.6mm;
+            letter-spacing: 0;
+          }
+
+          .intro {
+            max-width: none;
+            font-size: 9pt;
+            line-height: 1.45;
+          }
+
+          .top-grid {
+            grid-template-columns: 54mm 1fr;
+            gap: 4mm;
+            margin-bottom: 5mm;
+          }
+
+          .panel,
+          .section-card {
+            padding: 5mm;
+          }
+
+          .panel {
+            background: #ffffff;
+          }
+
+          .health-value {
+            font-size: 28pt;
+          }
+
+          .health-text,
+          .summary-subtitle,
+          .section-subtitle,
+          .health-note {
+            font-size: 8.5pt;
+            line-height: 1.35;
+          }
+
+          .summary-title,
+          .section-title {
+            font-size: 15pt;
+            line-height: 1.2;
+          }
+
+          .summary-grid,
+          .kpi-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2.6mm;
+          }
+
+          .print-section {
+            margin-bottom: 5mm;
+          }
+
+          .section-head {
+            margin-bottom: 4mm;
+            padding-bottom: 3mm;
+            border-bottom: 1px solid #e2e8f0;
+          }
+
+          .balance-section {
+            break-before: page;
+            page-break-before: always;
+          }
+
+          .kpi-card {
+            position: relative;
+            min-height: 25mm;
+            padding: 3.5mm;
+            background: #ffffff !important;
+          }
+
+          .kpi-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 0.8mm;
+            background: #cbd5e1;
+            border-radius: 6px 6px 0 0;
+          }
+
+          .kpi-card.tone-green::before {
+            background: #22c55e;
+          }
+
+          .kpi-card.tone-yellow::before {
+            background: #f59e0b;
+          }
+
+          .kpi-card.tone-red::before {
+            background: #ef4444;
+          }
+
+          .kpi-label,
+          .kpi-delta {
+            font-size: 7.6pt;
+            line-height: 1.25;
+          }
+
+          .kpi-label {
+            color: #64748b;
+            font-weight: 600;
+          }
+
+          .kpi-value {
+            font-size: 13.2pt;
+            line-height: 1.15;
+            margin-bottom: 1.5mm;
+            overflow-wrap: anywhere;
+          }
+
+          .mini-bars {
+            height: 8.5mm;
+            margin-top: 2.2mm;
+            gap: 1mm;
+          }
+
+          .mini-bar {
+            width: 1.8mm;
+          }
+
+          .table-wrap {
+            border-radius: 4px;
+            overflow: visible;
+          }
+
+          .print-table {
+            table-layout: fixed;
+            font-size: 7.4pt;
+            line-height: 1.22;
+          }
+
+          .print-table th,
+          .print-table td {
+            padding: 2mm 1.4mm;
+            word-break: normal;
+            overflow-wrap: anywhere;
+            hyphens: auto;
+          }
+
+          .print-table th:not(:first-child),
+          .print-table td:not(:first-child) {
+            text-align: right;
+          }
+
+          .row-label {
+            width: 36mm;
+          }
+
+          .page-break {
+            break-before: page;
+            page-break-before: always;
+          }
+
+          .avoid-break,
+          .kpi-card,
+          .report-header,
+          .panel,
+          .balance-section {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+
+          .section-card {
+            break-inside: auto;
+            page-break-inside: auto;
+          }
+
+          .section-card.avoid-break {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+        }
       `}</style>
 
       <header className="report-header avoid-break">
         <div className="header-top">
           <div>
             <div className="eyebrow">DataGate Insight</div>
-            <img src="/logo_dark_big.png" alt="DataGate" className="brand-logo" />
+            <img src="/logo_dark_napis.png" alt="DataGate" className="brand-logo" />
           </div>
 
           <div className="header-badges">
@@ -1066,7 +1330,7 @@ export default function ReportPrintView({
         </div>
       </section>
 
-      <section className="print-section section-card avoid-break">
+      <section className="print-section section-card balance-section avoid-break">
         <div className="section-head">
           <h2 className="section-title">Bilans</h2>
           <p className="section-subtitle">

@@ -38,7 +38,16 @@ coverage/
 # =====================================================
 
 firebase-service-account.json
+serviceAccountKey.json
+*-firebase-adminsdk-*.json
+*.service-account.json
 secrets/
+
+# Firebase cache / logs
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
 
 # =====================================================
 # Logs
@@ -54,12 +63,15 @@ pnpm-debug.log*
 # =====================================================
 
 .DS_Store
+Thumbs.db
 
 # =====================================================
 # Certificates / keys
 # =====================================================
 
 *.pem
+*.key
+*.crt
 
 # =====================================================
 # TypeScript
@@ -73,3 +85,22 @@ next-env.d.ts
 # =====================================================
 
 .vercel
+
+# =====================================================
+# Local IDE / editor files
+# =====================================================
+
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+
+# =====================================================
+# Temporary files
+# =====================================================
+
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp

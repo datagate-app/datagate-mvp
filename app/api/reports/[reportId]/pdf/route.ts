@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { chromium } from "playwright";
 import { adminAuth } from "@/lib/firebase-admin";
 
 export const runtime = "nodejs";
@@ -78,6 +77,9 @@ export async function GET(
     token
   )}&hideToolbar=1&pdf=1`;
 
+  process.env.PLAYWRIGHT_BROWSERS_PATH ??= "0";
+
+  const { chromium } = await import("playwright");
   let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null;
 
   try {
@@ -88,13 +90,13 @@ export async function GET(
 
     const page = await browser.newPage({
       viewport: {
-        width: 1600,
-        height: 2200,
+        width: 794,
+        height: 1123,
       },
-      deviceScaleFactor: 1,
+      deviceScaleFactor: 2,
     });
 
-    await page.emulateMedia({ media: "screen" });
+    await page.emulateMedia({ media: "print" });
 
     await page.goto(printUrl, {
       waitUntil: "networkidle",
@@ -110,10 +112,10 @@ export async function GET(
       printBackground: true,
       preferCSSPageSize: true,
       margin: {
-        top: "10mm",
-        right: "8mm",
-        bottom: "10mm",
-        left: "8mm",
+        top: "0",
+        right: "0",
+        bottom: "0",
+        left: "0",
       },
     });
 

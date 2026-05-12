@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "node scripts/install-playwright.js && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "cross-env PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium"
+    "postinstall": "node scripts/install-playwright.js"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.3.2",
@@ -26,7 +26,6 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "cross-env": "^7.0.3",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
