@@ -228,11 +228,7 @@ export default function ReportPage() {
           type="button"
           onClick={handleDownloadPdf}
           disabled={downloadingPdf}
-          className={`rounded-xl px-4 py-2 text-sm font-medium text-white transition ${
-            downloadingPdf
-              ? "cursor-not-allowed bg-slate-400"
-              : "bg-slate-900 hover:bg-slate-800"
-          }`}
+          className="dg-btn dg-btn-primary"
         >
           {downloadingPdf ? "Generowanie PDF..." : "Pobierz PDF"}
         </button>

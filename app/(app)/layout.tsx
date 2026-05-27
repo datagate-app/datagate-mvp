@@ -1,7 +1,6 @@
-import Link from "next/link";
 import Sidebar from "@/components/sidebar";
 import { AuthGuard } from "@/components/auth-guard";
-import { UserMenu } from "@/components/user-menu";
+import { AppTopbar } from "@/components/app-topbar";
 
 export const metadata = {
   title: "DataGate",
@@ -19,50 +18,31 @@ export default function AppLayout({ children }: Props) {
 
   return (
     <AuthGuard>
-      <div className="flex min-h-screen">
+      <div className="dg-app flex min-h-screen flex-col md:flex-row">
         <Sidebar />
 
-        <div className="flex flex-1 flex-col">
-          <header className="flex h-16 items-center justify-between border-b bg-white px-6">
-            <h1 className="text-lg font-semibold">DataGate</h1>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <AppTopbar />
 
-            <div className="flex items-center gap-4">
-              <a
-                href="/upload"
-                className="rounded-lg bg-black px-4 py-2 text-sm text-white hover:bg-gray-800"
-              >
-                + Nowy raport
-              </a>
+          <main className="dg-content flex-1 p-4 md:p-6">{children}</main>
 
-              <UserMenu />
-            </div>
-          </header>
-
-          <main className="flex-1 bg-gray-100 p-8">{children}</main>
-
-          <footer className="border-t bg-white px-6 py-4">
-            <div className="flex flex-col gap-3 text-sm text-gray-600 md:flex-row md:items-center md:justify-between">
+          <footer className="border-t border-[var(--dg-gray-200)] bg-white px-6 py-4">
+            <div className="flex flex-col gap-3 text-sm text-[var(--dg-gray-500)] md:flex-row md:items-center md:justify-between">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span>© {currentYear}</span>
                 <span>DataGate</span>
-                <span className="text-gray-400">•</span>
+                <span className="text-[var(--dg-gray-400)]">•</span>
                 <span>Wersja 0.4.1 MVP</span>
               </div>
 
               <div className="flex flex-wrap items-center gap-4">
-                <Link
-                  href="#"
-                  className="transition hover:text-gray-900"
-                >
+                <a href="#" className="transition hover:text-[var(--dg-navy)]">
                   Regulamin
-                </Link>
+                </a>
 
-                <Link
-                  href="#"
-                  className="transition hover:text-gray-900"
-                >
+                <a href="#" className="transition hover:text-[var(--dg-navy)]">
                   Polityka prywatności
-                </Link>
+                </a>
               </div>
             </div>
           </footer>

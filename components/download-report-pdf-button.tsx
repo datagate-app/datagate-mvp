@@ -37,11 +37,7 @@ export default function DownloadReportPdfButton({
       type="button"
       onClick={handleClick}
       disabled={loading}
-      className={`rounded-xl px-4 py-2 text-sm font-medium text-white transition ${
-        loading
-          ? "cursor-not-allowed bg-slate-400"
-          : "bg-slate-900 hover:bg-slate-800"
-      } ${className}`}
+      className={`dg-btn dg-btn-primary ${className}`}
     >
       {loading ? "Generowanie PDF..." : "Pobierz PDF"}
     </button>

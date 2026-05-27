@@ -712,11 +712,11 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+    <section className="dg-card p-5 md:p-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-          {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
+          <h2 className="text-sm font-semibold text-[var(--dg-navy)]">{title}</h2>
+          {subtitle && <p className="mt-1 text-xs leading-5 text-[var(--dg-gray-400)]">{subtitle}</p>}
         </div>
         {right && <div>{right}</div>}
       </div>
@@ -765,7 +765,7 @@ function TabSwitch({
   ];
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+    <div className="dg-card p-2">
       <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
         {items.map((item) => {
           const active = item.key === activeTab;
@@ -777,8 +777,8 @@ function TabSwitch({
               onClick={() => onChange(item.key)}
               className={`rounded-xl px-4 py-3 text-left text-sm font-medium transition ${
                 active
-                  ? "bg-slate-900 text-white"
-                  : "bg-white text-slate-700 hover:bg-slate-50"
+                  ? "bg-gradient-to-br from-[var(--dg-teal)] to-[var(--dg-blue)] text-white"
+                  : "bg-white text-[var(--dg-gray-600)] hover:bg-[var(--dg-gray-50)]"
               }`}
             >
               {item.label}
@@ -798,9 +798,9 @@ function EmptyStateCard({
   description: string;
 }) {
   return (
-    <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8">
-      <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+    <div className="rounded-[var(--dg-radius)] border border-dashed border-[var(--dg-gray-300)] bg-[var(--dg-gray-50)] p-8">
+      <h3 className="text-lg font-semibold text-[var(--dg-navy)]">{title}</h3>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--dg-gray-500)]">
         {description}
       </p>
     </div>
@@ -816,7 +816,7 @@ function HealthBreakdownCard({
   const toneClasses = getToneClasses(tone);
 
   return (
-    <div className={`rounded-2xl border p-4 ${toneClasses.border} ${toneClasses.bg}`}>
+    <div className={`rounded-[var(--dg-radius)] border p-4 ${toneClasses.border} ${toneClasses.bg}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-slate-800">{item.label}</p>
@@ -865,7 +865,7 @@ function HealthScoreCard({
   const toneClasses = getToneClasses(tone);
 
   return (
-    <div className={`rounded-3xl border p-5 ${toneClasses.border} ${toneClasses.bg}`}>
+    <div className={`rounded-[var(--dg-radius)] border p-5 ${toneClasses.border} ${toneClasses.bg}`}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm text-slate-500">Health Score</p>
@@ -894,7 +894,7 @@ function HealthScoreCard({
         />
       </div>
 
-      <div className="mt-5 rounded-2xl border border-slate-200 bg-white/70 p-4">
+      <div className="mt-5 rounded-[var(--dg-radius)] border border-[var(--dg-gray-200)] bg-white/70 p-4">
         <p className="text-sm font-medium text-slate-800">
           Jak liczony jest wynik
         </p>
@@ -930,7 +930,7 @@ function ExecutiveInsightCard({
       : "border-slate-200 bg-slate-50";
 
   return (
-    <div className={`rounded-2xl border p-4 ${classes}`}>
+    <div className={`rounded-[var(--dg-radius)] border p-4 ${classes}`}>
       <p className="text-sm font-medium text-slate-800">{title}</p>
     </div>
   );
@@ -967,7 +967,7 @@ function TrendLineChart({
   const polyline = normalized.map((p) => `${p.x},${p.y}`).join(" ");
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+    <div className="rounded-[var(--dg-radius)] border border-[var(--dg-gray-200)] bg-[var(--dg-gray-50)] p-4">
       <div className="h-40 md:h-48">
         <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full">
           <polyline
@@ -993,7 +993,7 @@ function TrendLineChart({
         {normalized.map((point, i) => (
           <div
             key={`${periods[i]}-${i}`}
-            className="rounded-2xl border border-slate-200 bg-white p-3"
+            className="rounded-[var(--dg-radius-sm)] border border-[var(--dg-gray-200)] bg-white p-3"
           >
             <p className="text-xs text-slate-500">{getPeriodLabel(periods[i])}</p>
             <p className="mt-1 text-sm font-semibold text-slate-900">
@@ -1048,7 +1048,7 @@ function BenchmarkRangeBar({
   const toneClasses = toneToClasses(tone);
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+    <div className="rounded-[var(--dg-radius)] border border-[var(--dg-gray-200)] bg-white p-4">
       <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
         <div>
           <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
@@ -1129,7 +1129,7 @@ function BenchmarkRangeBar({
           </div>
         </>
       ) : (
-        <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+        <div className="mt-4 rounded-[var(--dg-radius)] border border-dashed border-[var(--dg-gray-200)] bg-[var(--dg-gray-50)] p-4 text-sm text-[var(--dg-gray-500)]">
           Brak pełnych danych benchmarkowych dla tego wskaźnika.
         </div>
       )}
@@ -1171,7 +1171,7 @@ function MetricCard({
 
   return (
     <div
-      className={`rounded-3xl border bg-white p-5 shadow-sm ${
+      className={`rounded-[var(--dg-radius)] border bg-white p-5 shadow-sm dg-card-hover ${
         toneClasses ? toneClasses.border : "border-slate-200"
       }`}
     >
@@ -1201,7 +1201,7 @@ function MetricCard({
       {change && <p className={`mt-2 text-sm ${changeColorClass}`}>{change}</p>}
 
       {benchmarkLine1 && (
-        <div className="mt-4 rounded-2xl bg-slate-50 p-3">
+        <div className="mt-4 rounded-[var(--dg-radius-sm)] bg-[var(--dg-gray-50)] p-3">
           <p className="text-xs leading-5 text-slate-600">{benchmarkLine1}</p>
           {benchmarkLine2 && (
             <p className="mt-2 text-xs font-medium text-slate-700">
@@ -1231,7 +1231,7 @@ function SummaryMetricCard({
 
   return (
     <div
-      className={`rounded-2xl border bg-white p-4 ${
+      className={`rounded-[var(--dg-radius)] border bg-white p-4 ${
         toneClasses ? toneClasses.border : "border-slate-200"
       }`}
     >
@@ -1557,14 +1557,14 @@ export default function ReportView({
 
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
-      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+      <section className="dg-card p-5 md:p-6">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 space-y-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--dg-gray-400)]">
                 DataGate Insight
               </p>
-              <h1 className="mt-2 text-2xl font-bold text-slate-900 md:text-3xl">
+              <h1 className="dg-title mt-2 text-2xl md:text-3xl">
                 {reportName || "Raport finansowy"}
               </h1>
             </div>
@@ -1590,7 +1590,7 @@ export default function ReportView({
               />
             </div>
 
-            <p className="max-w-3xl text-sm leading-6 text-slate-600">
+            <p className="max-w-3xl text-sm leading-6 text-[var(--dg-gray-500)]">
               Raport łączy analizę bilansu, RZiS oraz wskaźniki łączone. Zakładki
               pozwalają przechodzić między strukturą finansowania, wynikami oraz
               efektywnością wykorzystania aktywów i kapitału.
@@ -1602,7 +1602,7 @@ export default function ReportView({
               Wybrany okres
             </label>
             <select
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400"
+              className="dg-select"
               value={selectedPeriod}
               onChange={(e) => setSelectedPeriod(e.target.value as PeriodKey)}
             >
@@ -1775,8 +1775,8 @@ export default function ReportView({
                     onClick={() => setSelectedTrendMetric(item.key)}
                     className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
                       active
-                        ? "border-slate-900 bg-slate-900 text-white"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                        ? "border-sky-500 bg-gradient-to-br from-[var(--dg-teal)] to-[var(--dg-blue)] text-white"
+                        : "border-[var(--dg-gray-200)] bg-white text-[var(--dg-gray-600)] hover:border-sky-300"
                     }`}
                   >
                     {item.label}
@@ -1886,8 +1886,8 @@ export default function ReportView({
                         onClick={() => setSelectedIncomeTrendMetric(item.key)}
                         className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
                           active
-                            ? "border-slate-900 bg-slate-900 text-white"
-                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                            ? "border-sky-500 bg-gradient-to-br from-[var(--dg-teal)] to-[var(--dg-blue)] text-white"
+                            : "border-[var(--dg-gray-200)] bg-white text-[var(--dg-gray-600)] hover:border-sky-300"
                         }`}
                       >
                         {item.label}
@@ -2064,8 +2064,8 @@ export default function ReportView({
                         onClick={() => setSelectedCombinedTrendMetric(item.key)}
                         className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
                           active
-                            ? "border-slate-900 bg-slate-900 text-white"
-                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                            ? "border-sky-500 bg-gradient-to-br from-[var(--dg-teal)] to-[var(--dg-blue)] text-white"
+                            : "border-[var(--dg-gray-200)] bg-white text-[var(--dg-gray-600)] hover:border-sky-300"
                         }`}
                       >
                         {item.label}

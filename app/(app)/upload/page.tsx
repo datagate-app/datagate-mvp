@@ -16,12 +16,19 @@ const INDUSTRIES = [
   { value: "construction", label: "Budownictwo" },
 ];
 
+function IconUpload() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z" />
+    </svg>
+  );
+}
+
 export default function UploadPage() {
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<UploadTab>("demo");
 
-  // IMPORT
   const [balanceFile, setBalanceFile] = useState<File | null>(null);
   const [incomeStatementFile, setIncomeStatementFile] = useState<File | null>(
     null
@@ -30,13 +37,11 @@ export default function UploadPage() {
   const [importIndustry, setImportIndustry] = useState("manufacturing");
   const [importLoading, setImportLoading] = useState(false);
 
-  // DEMO
   const [demoName, setDemoName] = useState("");
   const [demoIndustry, setDemoIndustry] = useState("manufacturing");
   const [demoAssets, setDemoAssets] = useState("");
   const [demoEquity, setDemoEquity] = useState("");
 
-  // MANUAL FULL BALANCE
   const [manualName, setManualName] = useState("");
   const [manualIndustry, setManualIndustry] = useState("manufacturing");
 
@@ -73,9 +78,7 @@ export default function UploadPage() {
       const token = await user.getIdToken();
 
       const baseFileName =
-        balanceFile?.name ||
-        incomeStatementFile?.name ||
-        "Nowy raport";
+        balanceFile?.name || incomeStatementFile?.name || "Nowy raport";
 
       const formData = new FormData();
 
@@ -136,19 +139,20 @@ export default function UploadPage() {
   }, [incomeStatementFile]);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
-      <div className="space-y-3">
-        <h1 className="text-3xl font-bold tracking-tight">
+    <div className="mx-auto max-w-[1500px] space-y-6">
+      <div>
+        <span className="dg-module-badge">DataGate Analyze</span>
+        <h1 className="dg-title mt-3 text-2xl md:text-3xl">
           Dodaj dane do raportu
         </h1>
-        <p className="max-w-3xl text-sm text-gray-600 md:text-base">
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--dg-gray-500)]">
           Wybierz sposób pracy z danymi finansowymi. Możesz szybko utworzyć demo
           danych, uzupełnić pełny bilans online albo zaimportować pliki
           przygotowane na bazie szablonów DataGate.
         </p>
       </div>
 
-      <div className="rounded-2xl border bg-white p-2 shadow-sm">
+      <div className="dg-card p-2">
         <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
           <TabButton
             isActive={activeTab === "demo"}
@@ -194,165 +198,189 @@ export default function UploadPage() {
       )}
 
       {activeTab === "import" && (
-        <section className="rounded-2xl border bg-white p-6 shadow-sm md:p-8">
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold">Import z pliku</h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Możesz zaimportować sam bilans, sam RZiS albo oba pliki naraz.
-              Docelowo będą zapisane jako jeden raport finansowy.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium text-gray-700">
-                Nazwa raportu
-              </label>
-              <input
-                type="text"
-                value={importName}
-                onChange={(e) => setImportName(e.target.value)}
-                placeholder="np. ABC sp. z o.o. – raport finansowy 2025"
-                className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
-              />
-              <p className="mt-2 text-xs text-gray-500">
-                Jeśli zostawisz puste, jako nazwa raportu zostanie użyta nazwa
-                pierwszego wybranego pliku.
+        <section className="dg-card">
+          <div className="dg-card-body md:p-8">
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-[var(--dg-navy)]">
+                Import z pliku
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--dg-gray-500)]">
+                Możesz zaimportować sam bilans, sam RZiS albo oba pliki naraz.
+                Docelowo będą zapisane jako jeden raport finansowy.
               </p>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-700">
-                Branża
-              </label>
-              <select
-                value={importIndustry}
-                onChange={(e) => setImportIndustry(e.target.value)}
-                className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <label className="dg-label">Nazwa raportu</label>
+                <input
+                  type="text"
+                  value={importName}
+                  onChange={(e) => setImportName(e.target.value)}
+                  placeholder="np. ABC sp. z o.o. - raport finansowy 2025"
+                  className="dg-input"
+                />
+                <p className="mt-2 text-xs text-[var(--dg-gray-400)]">
+                  Jeśli zostawisz puste, jako nazwa raportu zostanie użyta nazwa
+                  pierwszego wybranego pliku.
+                </p>
+              </div>
+
+              <div>
+                <label className="dg-label">Branża</label>
+                <select
+                  value={importIndustry}
+                  onChange={(e) => setImportIndustry(e.target.value)}
+                  className="dg-select"
+                >
+                  {INDUSTRIES.map((industry) => (
+                    <option key={industry.value} value={industry.value}>
+                      {industry.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="rounded-[var(--dg-radius)] border border-dashed border-[var(--dg-gray-300)] bg-[var(--dg-gray-50)] p-4">
+                <p className="text-sm font-medium text-[var(--dg-navy)]">
+                  Zakres importu
+                </p>
+                <p className="mt-1 text-sm leading-6 text-[var(--dg-gray-500)]">
+                  Minimalnie możesz wgrać bilans. Pełniejsza analiza powstanie
+                  po dodaniu także RZiS.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-6 xl:grid-cols-2">
+              <div className="dg-upload-box">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[var(--dg-radius)] bg-[var(--dg-gray-100)] text-[var(--dg-gray-400)]">
+                  <span className="h-6 w-6">
+                    <IconUpload />
+                  </span>
+                </div>
+                <label className="block text-sm font-semibold text-[var(--dg-navy)]">
+                  Bilans - plik CSV
+                </label>
+                <p className="mt-1 text-xs text-[var(--dg-gray-400)]">
+                  Aktywa, kapitał własny, zobowiązania i pozycje bilansowe.
+                </p>
+
+                <div className="mt-4 flex flex-wrap justify-center gap-3">
+                  <label className="dg-btn dg-btn-primary cursor-pointer">
+                    Wybierz bilans CSV
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) =>
+                        setBalanceFile(e.target.files?.[0] ?? null)
+                      }
+                      className="hidden"
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={downloadBalanceTemplate}
+                    className="dg-btn dg-btn-secondary"
+                  >
+                    Pobierz szablon
+                  </button>
+                </div>
+
+                <div className="mt-4 text-sm text-[var(--dg-gray-600)]">
+                  {balanceFileInfo ? (
+                    <div className="rounded-[var(--dg-radius-sm)] border border-emerald-200 bg-emerald-50 p-3">
+                      <p>
+                        Wybrano: <strong>{balanceFileInfo.name}</strong>
+                      </p>
+                      <p>Rozmiar: {balanceFileInfo.sizeKb} KB</p>
+                    </div>
+                  ) : (
+                    <p className="text-[var(--dg-gray-400)]">
+                      Nie wybrano pliku bilansu.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="dg-upload-box">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[var(--dg-radius)] bg-[var(--dg-gray-100)] text-[var(--dg-gray-400)]">
+                  <span className="h-6 w-6">
+                    <IconUpload />
+                  </span>
+                </div>
+                <label className="block text-sm font-semibold text-[var(--dg-navy)]">
+                  RZiS - plik CSV
+                </label>
+                <p className="mt-1 text-xs text-[var(--dg-gray-400)]">
+                  Przychody, koszty, wynik operacyjny, brutto i netto.
+                </p>
+
+                <div className="mt-4 flex flex-wrap justify-center gap-3">
+                  <label className="dg-btn dg-btn-primary cursor-pointer">
+                    Wybierz RZiS CSV
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) =>
+                        setIncomeStatementFile(e.target.files?.[0] ?? null)
+                      }
+                      className="hidden"
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={downloadIncomeTemplate}
+                    className="dg-btn dg-btn-secondary"
+                  >
+                    Pobierz szablon
+                  </button>
+                </div>
+
+                <div className="mt-4 text-sm text-[var(--dg-gray-600)]">
+                  {incomeFileInfo ? (
+                    <div className="rounded-[var(--dg-radius-sm)] border border-emerald-200 bg-emerald-50 p-3">
+                      <p>
+                        Wybrano: <strong>{incomeFileInfo.name}</strong>
+                      </p>
+                      <p>Rozmiar: {incomeFileInfo.sizeKb} KB</p>
+                    </div>
+                  ) : (
+                    <p className="text-[var(--dg-gray-400)]">
+                      Nie wybrano pliku RZiS.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={handleImportUpload}
+                disabled={importLoading}
+                className="dg-btn dg-btn-primary px-5 py-3"
               >
-                {INDUSTRIES.map((industry) => (
-                  <option key={industry.value} value={industry.value}>
-                    {industry.label}
-                  </option>
-                ))}
-              </select>
+                {importLoading
+                  ? "Generowanie..."
+                  : "Importuj i wygeneruj raport"}
+              </button>
             </div>
 
-            <div className="rounded-xl border border-dashed bg-gray-50 p-4">
-              <p className="text-sm font-medium text-gray-700">Zakres importu</p>
-              <p className="mt-1 text-sm text-gray-600">
-                Minimalnie możesz wgrać bilans. Pełniejsza analiza powstanie po
-                dodaniu także RZiS.
+            <div className="mt-6 rounded-[var(--dg-radius)] border border-[var(--dg-gray-200)] bg-[var(--dg-gray-50)] p-4 text-sm text-[var(--dg-gray-500)]">
+              <p className="font-semibold text-[var(--dg-navy)]">
+                Na ten moment obowiązuje taki flow:
               </p>
+              <ol className="mt-2 list-decimal space-y-1 pl-5">
+                <li>Pobierz szablon bilansu i/lub szablon RZiS.</li>
+                <li>Uzupełnij dane w Excelu.</li>
+                <li>Zapisz każdy plik jako CSV.</li>
+                <li>Wgraj jeden lub dwa pliki do DataGate.</li>
+                <li>System zapisze je jako jeden raport finansowy.</li>
+              </ol>
             </div>
-          </div>
-
-          <div className="mt-6 grid gap-6 xl:grid-cols-2">
-            <div className="rounded-xl border-2 border-dashed p-6">
-              <label className="block text-sm font-medium text-gray-700">
-                Bilans — plik CSV
-              </label>
-
-              <div className="mt-4 flex flex-wrap gap-3">
-                <label className="cursor-pointer rounded-lg border px-5 py-3 font-medium hover:bg-gray-50">
-                  Wybierz bilans CSV
-                  <input
-                    type="file"
-                    accept=".csv"
-                    onChange={(e) => setBalanceFile(e.target.files?.[0] ?? null)}
-                    className="hidden"
-                  />
-                </label>
-
-                <button
-                  type="button"
-                  onClick={downloadBalanceTemplate}
-                  className="rounded-lg border px-5 py-3 font-medium hover:bg-gray-50"
-                >
-                  Pobierz szablon bilansu
-                </button>
-              </div>
-
-              <div className="mt-4 text-sm text-gray-700">
-                {balanceFileInfo ? (
-                  <div className="rounded-lg bg-gray-50 p-3">
-                    <p>
-                      Wybrano: <strong>{balanceFileInfo.name}</strong>
-                    </p>
-                    <p>Rozmiar: {balanceFileInfo.sizeKb} KB</p>
-                  </div>
-                ) : (
-                  <p className="text-gray-500">Nie wybrano pliku bilansu.</p>
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-xl border-2 border-dashed p-6">
-              <label className="block text-sm font-medium text-gray-700">
-                RZiS — plik CSV
-              </label>
-
-              <div className="mt-4 flex flex-wrap gap-3">
-                <label className="cursor-pointer rounded-lg border px-5 py-3 font-medium hover:bg-gray-50">
-                  Wybierz RZiS CSV
-                  <input
-                    type="file"
-                    accept=".csv"
-                    onChange={(e) =>
-                      setIncomeStatementFile(e.target.files?.[0] ?? null)
-                    }
-                    className="hidden"
-                  />
-                </label>
-
-                <button
-                  type="button"
-                  onClick={downloadIncomeTemplate}
-                  className="rounded-lg border px-5 py-3 font-medium hover:bg-gray-50"
-                >
-                  Pobierz szablon RZiS
-                </button>
-              </div>
-
-              <div className="mt-4 text-sm text-gray-700">
-                {incomeFileInfo ? (
-                  <div className="rounded-lg bg-gray-50 p-3">
-                    <p>
-                      Wybrano: <strong>{incomeFileInfo.name}</strong>
-                    </p>
-                    <p>Rozmiar: {incomeFileInfo.sizeKb} KB</p>
-                  </div>
-                ) : (
-                  <p className="text-gray-500">Nie wybrano pliku RZiS.</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={handleImportUpload}
-              disabled={importLoading}
-              className={`rounded-lg px-5 py-3 font-medium text-white ${
-                importLoading ? "bg-gray-400" : "bg-black hover:bg-gray-800"
-              }`}
-            >
-              {importLoading ? "Generowanie..." : "Importuj i wygeneruj raport"}
-            </button>
-          </div>
-
-          <div className="mt-6 rounded-xl bg-gray-50 p-4 text-sm text-gray-600">
-            <p className="font-medium text-gray-800">
-              Na ten moment obowiązuje taki flow:
-            </p>
-            <ol className="mt-2 list-decimal space-y-1 pl-5">
-              <li>Pobierz szablon bilansu i/lub szablon RZiS.</li>
-              <li>Uzupełnij dane w Excelu.</li>
-              <li>Zapisz każdy plik jako CSV.</li>
-              <li>Wgraj jeden lub dwa pliki do DataGate.</li>
-              <li>System zapisze je jako jeden raport finansowy.</li>
-            </ol>
           </div>
         </section>
       )}
@@ -377,16 +405,16 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-[92px] w-full cursor-pointer rounded-xl border px-5 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-black/20 ${
+      className={`min-h-[92px] w-full cursor-pointer rounded-[var(--dg-radius)] border px-5 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-sky-500/20 ${
         isActive
-          ? "border-black bg-black text-white"
-          : "border-gray-200 bg-white text-gray-900 hover:bg-gray-50"
+          ? "border-sky-500 bg-gradient-to-br from-[var(--dg-teal)] to-[var(--dg-blue)] text-white shadow-[0_4px_14px_rgba(14,165,233,.26)]"
+          : "border-[var(--dg-gray-200)] bg-white text-[var(--dg-navy)] hover:border-sky-300 hover:bg-[var(--dg-gray-50)]"
       }`}
     >
       <div className="text-base font-semibold leading-tight">{title}</div>
       <div
         className={`mt-2 text-sm leading-snug ${
-          isActive ? "text-gray-200" : "text-gray-600"
+          isActive ? "text-white/75" : "text-[var(--dg-gray-500)]"
         }`}
       >
         {description}

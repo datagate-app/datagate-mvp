@@ -489,10 +489,11 @@ export default function ManualBalanceForm({
   const liabilitiesRows = BALANCE_ROWS.filter((row) => row.section === "liabilities");
 
   return (
-    <section className="rounded-2xl border bg-white p-6 shadow-sm md:p-8">
+    <section className="dg-card">
+      <div className="dg-card-body md:p-8">
       <div className="mb-6">
-        <h2 className="text-2xl font-semibold">Pełny raport online</h2>
-        <p className="mt-2 text-sm text-gray-600">
+        <h2 className="text-lg font-semibold text-[var(--dg-navy)]">Pełny raport online</h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--dg-gray-500)]">
           Uzupełnij wielookresowy bilans i uproszczony RZiS bezpośrednio w
           przeglądarce. DataGate policzy wskaźniki bilansowe, wynikowe i analizę
           łączną.
@@ -501,25 +502,25 @@ export default function ManualBalanceForm({
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <div className="md:col-span-2">
-          <label className="text-sm font-medium text-gray-700">Nazwa raportu</label>
+          <label className="dg-label">Nazwa raportu</label>
           <input
             type="text"
             value={reportName}
             onChange={(e) => onReportNameChange(e.target.value)}
             placeholder="np. Raport firmy XYZ 2025"
-            className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
+            className="dg-input"
           />
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-[var(--dg-gray-400)]">
             Jeśli zostawisz puste, zapisze się jako „Raport ręczny”.
           </p>
         </div>
 
         <div>
-          <label className="text-sm font-medium text-gray-700">Branża</label>
+          <label className="dg-label">Branża</label>
           <select
             value={industry}
             onChange={(e) => onIndustryChange(e.target.value)}
-            className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
+            className="dg-select"
           >
             <option value="manufacturing">Produkcja</option>
             <option value="it">IT</option>
@@ -529,24 +530,24 @@ export default function ManualBalanceForm({
           </select>
         </div>
 
-        <div className="rounded-xl border border-dashed bg-gray-50 p-4">
-          <p className="text-sm font-medium text-gray-700">Okresy</p>
-          <p className="mt-1 text-sm text-gray-600">
+        <div className="rounded-[var(--dg-radius)] border border-dashed border-[var(--dg-gray-300)] bg-[var(--dg-gray-50)] p-4">
+          <p className="text-sm font-medium text-[var(--dg-navy)]">Okresy</p>
+          <p className="mt-1 text-sm leading-6 text-[var(--dg-gray-500)]">
             Wspierane są: t-2, t-1, t0, t1, t2, t3, t4, t5, t6. Do
             wygenerowania raportu wymagany jest przynajmniej okres t0.
           </p>
         </div>
       </div>
 
-      <div className="mt-6 rounded-2xl border bg-white p-2">
+      <div className="mt-6 rounded-[var(--dg-radius)] border border-[var(--dg-gray-200)] bg-white p-2">
         <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
           <button
             type="button"
             onClick={() => setActiveTab("balance")}
             className={`rounded-xl px-4 py-3 text-left text-sm font-medium transition ${
               activeTab === "balance"
-                ? "bg-black text-white"
-                : "bg-white text-gray-700 hover:bg-gray-50"
+                ? "bg-gradient-to-br from-[var(--dg-teal)] to-[var(--dg-blue)] text-white"
+                : "bg-white text-[var(--dg-gray-600)] hover:bg-[var(--dg-gray-50)]"
             }`}
           >
             Bilans
@@ -557,8 +558,8 @@ export default function ManualBalanceForm({
             onClick={() => setActiveTab("income")}
             className={`rounded-xl px-4 py-3 text-left text-sm font-medium transition ${
               activeTab === "income"
-                ? "bg-black text-white"
-                : "bg-white text-gray-700 hover:bg-gray-50"
+                ? "bg-gradient-to-br from-[var(--dg-teal)] to-[var(--dg-blue)] text-white"
+                : "bg-white text-[var(--dg-gray-600)] hover:bg-[var(--dg-gray-50)]"
             }`}
           >
             RZiS
@@ -568,9 +569,9 @@ export default function ManualBalanceForm({
 
       {activeTab === "balance" && (
         <>
-          <div className="mt-6 overflow-x-auto rounded-xl border">
-            <table className="min-w-[1400px] border-collapse text-sm">
-              <thead className="bg-gray-50">
+          <div className="mt-6 overflow-x-auto rounded-[var(--dg-radius)] border border-[var(--dg-gray-200)]">
+            <table className="dg-table min-w-[1400px]">
+              <thead>
                 <tr>
                   <th className="border-b px-4 py-3 text-left font-semibold text-gray-700">
                     Pozycja
@@ -612,7 +613,7 @@ export default function ManualBalanceForm({
                             updateBalanceCell(row.key, period, e.target.value)
                           }
                           placeholder="0"
-                          className="w-24 rounded-md border px-2 py-1.5 text-center text-sm outline-none transition focus:border-black"
+                          className="w-24 rounded-md border border-[var(--dg-gray-200)] px-2 py-1.5 text-center text-sm outline-none transition focus:border-[var(--dg-teal)] focus:ring-2 focus:ring-sky-500/10"
                         />
                       </td>
                     ))}
@@ -656,7 +657,7 @@ export default function ManualBalanceForm({
                             updateBalanceCell(row.key, period, e.target.value)
                           }
                           placeholder="0"
-                          className="w-24 rounded-md border px-2 py-1.5 text-center text-sm outline-none transition focus:border-black"
+                          className="w-24 rounded-md border border-[var(--dg-gray-200)] px-2 py-1.5 text-center text-sm outline-none transition focus:border-[var(--dg-teal)] focus:ring-2 focus:ring-sky-500/10"
                         />
                       </td>
                     ))}
@@ -702,7 +703,7 @@ export default function ManualBalanceForm({
                             updateBalanceCell(row.key, period, e.target.value)
                           }
                           placeholder="0"
-                          className="w-24 rounded-md border px-2 py-1.5 text-center text-sm outline-none transition focus:border-black"
+                          className="w-24 rounded-md border border-[var(--dg-gray-200)] px-2 py-1.5 text-center text-sm outline-none transition focus:border-[var(--dg-teal)] focus:ring-2 focus:ring-sky-500/10"
                         />
                       </td>
                     ))}
@@ -741,12 +742,12 @@ export default function ManualBalanceForm({
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="rounded-xl border border-dashed bg-gray-50 p-4 text-sm text-gray-600">
+            <div className="rounded-[var(--dg-radius)] border border-dashed border-[var(--dg-gray-300)] bg-[var(--dg-gray-50)] p-4 text-sm leading-6 text-[var(--dg-gray-500)]">
               W tej wersji sumy liczone są automatycznie po stronie formularza,
               więc nie musisz ręcznie wpisywać pozycji agregujących.
             </div>
 
-            <div className="rounded-xl border border-dashed bg-gray-50 p-4 text-sm text-gray-600">
+            <div className="rounded-[var(--dg-radius)] border border-dashed border-[var(--dg-gray-300)] bg-[var(--dg-gray-50)] p-4 text-sm leading-6 text-[var(--dg-gray-500)]">
               Żeby wygenerować raport, bilans musi się zgadzać:
               aktywa razem = kapitał własny + zobowiązania razem.
             </div>
@@ -756,9 +757,9 @@ export default function ManualBalanceForm({
 
       {activeTab === "income" && (
         <>
-          <div className="mt-6 overflow-x-auto rounded-xl border">
-            <table className="min-w-[1400px] border-collapse text-sm">
-              <thead className="bg-gray-50">
+          <div className="mt-6 overflow-x-auto rounded-[var(--dg-radius)] border border-[var(--dg-gray-200)]">
+            <table className="dg-table min-w-[1400px]">
+              <thead>
                 <tr>
                   <th className="border-b px-4 py-3 text-left font-semibold text-gray-700">
                     Pozycja
@@ -791,7 +792,7 @@ export default function ManualBalanceForm({
                             updateIncomeCell(row.key, period, e.target.value)
                           }
                           placeholder="0"
-                          className="w-24 rounded-md border px-2 py-1.5 text-center text-sm outline-none transition focus:border-black"
+                          className="w-24 rounded-md border border-[var(--dg-gray-200)] px-2 py-1.5 text-center text-sm outline-none transition focus:border-[var(--dg-teal)] focus:ring-2 focus:ring-sky-500/10"
                         />
                       </td>
                     ))}
@@ -802,12 +803,12 @@ export default function ManualBalanceForm({
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="rounded-xl border border-dashed bg-gray-50 p-4 text-sm text-gray-600">
+            <div className="rounded-[var(--dg-radius)] border border-dashed border-[var(--dg-gray-300)] bg-[var(--dg-gray-50)] p-4 text-sm leading-6 text-[var(--dg-gray-500)]">
               Na start uzupełniamy uproszczony RZiS: przychody, koszty
               operacyjne, wynik operacyjny, brutto i netto.
             </div>
 
-            <div className="rounded-xl border border-dashed bg-gray-50 p-4 text-sm text-gray-600">
+            <div className="rounded-[var(--dg-radius)] border border-dashed border-[var(--dg-gray-300)] bg-[var(--dg-gray-50)] p-4 text-sm leading-6 text-[var(--dg-gray-500)]">
               Do zapisania raportu wymagany jest przynajmniej przychód dla
               okresu t0, jeśli chcesz uwzględnić część wynikową.
             </div>
@@ -820,12 +821,11 @@ export default function ManualBalanceForm({
           type="button"
           onClick={handleSubmit}
           disabled={loading}
-          className={`rounded-lg px-5 py-2.5 font-medium text-white ${
-            loading ? "bg-gray-400" : "bg-black hover:bg-gray-800"
-          }`}
+          className="dg-btn dg-btn-primary px-5 py-3"
         >
           {loading ? "Generowanie..." : "Generuj raport"}
         </button>
+      </div>
       </div>
     </section>
   );

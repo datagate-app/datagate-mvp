@@ -358,10 +358,11 @@ export default function DemoReportForm({
   }
 
   return (
-    <section className="rounded-2xl border bg-white p-6 shadow-sm md:p-8">
+    <section className="dg-card">
+      <div className="dg-card-body md:p-8">
       <div className="mb-6">
-        <h2 className="text-2xl font-semibold">Demo danych</h2>
-        <p className="mt-2 text-sm text-gray-600">
+        <h2 className="text-lg font-semibold text-[var(--dg-navy)]">Demo danych</h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--dg-gray-500)]">
           Szybka ścieżka do wygenerowania przykładowego raportu. Dodaj dane
           bilansu i uproszczone dane RZiS, a system zbuduje demo dla wszystkich
           okresów od t-2 do t+6.
@@ -370,7 +371,7 @@ export default function DemoReportForm({
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <div className="md:col-span-2">
-          <label className="text-sm font-medium text-gray-700">
+          <label className="dg-label">
             Nazwa raportu
           </label>
           <input
@@ -378,19 +379,19 @@ export default function DemoReportForm({
             value={reportName}
             onChange={(e) => onReportNameChange(e.target.value)}
             placeholder="np. Raport testowy Q4 2025"
-            className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
+            className="dg-input"
           />
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-[var(--dg-gray-400)]">
             Jeśli zostawisz puste, zapisze się jako „Raport demo”.
           </p>
         </div>
 
         <div>
-          <label className="text-sm font-medium text-gray-700">Branża</label>
+          <label className="dg-label">Branża</label>
           <select
             value={industry}
             onChange={(e) => onIndustryChange(e.target.value)}
-            className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
+            className="dg-select"
           >
             {INDUSTRIES.map((item) => (
               <option key={item.value} value={item.value}>
@@ -400,21 +401,21 @@ export default function DemoReportForm({
           </select>
         </div>
 
-        <div className="rounded-xl border border-dashed bg-gray-50 p-4">
-          <p className="text-sm font-medium text-gray-700">Tryb demo</p>
-          <p className="mt-1 text-sm text-gray-600">
+        <div className="rounded-[var(--dg-radius)] border border-dashed border-[var(--dg-gray-300)] bg-[var(--dg-gray-50)] p-4">
+          <p className="text-sm font-medium text-[var(--dg-navy)]">Tryb demo</p>
+          <p className="mt-1 text-sm leading-6 text-[var(--dg-gray-500)]">
             Na podstawie wartości bazowych dla t0 system wygeneruje przykładowe
             dane historyczne i prognozowane, aby raport był pełny także dla
             RZiS i analizy łącznej.
           </p>
         </div>
 
-        <div className="md:col-span-2 rounded-xl border border-slate-200 p-4">
-          <p className="text-sm font-semibold text-slate-800">Bilans — baza t0</p>
+        <div className="md:col-span-2 rounded-[var(--dg-radius)] border border-[var(--dg-gray-200)] p-4">
+          <p className="text-sm font-semibold text-[var(--dg-navy)]">Bilans — baza t0</p>
 
           <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2">
             <div>
-              <label className="text-sm font-medium text-gray-700">
+              <label className="dg-label">
                 Aktywa razem (w tys. zł)
               </label>
               <input
@@ -422,12 +423,12 @@ export default function DemoReportForm({
                 value={assets}
                 onChange={(e) => onAssetsChange(e.target.value)}
                 placeholder="np. 2440"
-                className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
+                className="dg-input"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700">
+              <label className="dg-label">
                 Kapitał własny (w tys. zł)
               </label>
               <input
@@ -435,18 +436,18 @@ export default function DemoReportForm({
                 value={equity}
                 onChange={(e) => onEquityChange(e.target.value)}
                 placeholder="np. 1440"
-                className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
+                className="dg-input"
               />
             </div>
           </div>
         </div>
 
-        <div className="md:col-span-2 rounded-xl border border-slate-200 p-4">
-          <p className="text-sm font-semibold text-slate-800">RZiS — baza t0</p>
+        <div className="md:col-span-2 rounded-[var(--dg-radius)] border border-[var(--dg-gray-200)] p-4">
+          <p className="text-sm font-semibold text-[var(--dg-navy)]">RZiS — baza t0</p>
 
           <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2">
             <div>
-              <label className="text-sm font-medium text-gray-700">
+              <label className="dg-label">
                 Przychody netto ze sprzedaży (w tys. zł)
               </label>
               <input
@@ -454,12 +455,12 @@ export default function DemoReportForm({
                 value={revenue}
                 onChange={(e) => setRevenue(e.target.value)}
                 placeholder="np. 3200"
-                className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
+                className="dg-input"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700">
+              <label className="dg-label">
                 Koszty działalności operacyjnej (w tys. zł)
               </label>
               <input
@@ -467,12 +468,12 @@ export default function DemoReportForm({
                 value={operatingCosts}
                 onChange={(e) => setOperatingCosts(e.target.value)}
                 placeholder="np. 2780"
-                className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
+                className="dg-input"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700">
+              <label className="dg-label">
                 Wynik operacyjny (w tys. zł)
               </label>
               <input
@@ -480,12 +481,12 @@ export default function DemoReportForm({
                 value={operatingProfit}
                 onChange={(e) => setOperatingProfit(e.target.value)}
                 placeholder="np. 420"
-                className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
+                className="dg-input"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700">
+              <label className="dg-label">
                 Wynik brutto (w tys. zł)
               </label>
               <input
@@ -493,12 +494,12 @@ export default function DemoReportForm({
                 value={grossProfit}
                 onChange={(e) => setGrossProfit(e.target.value)}
                 placeholder="np. 390"
-                className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
+                className="dg-input"
               />
             </div>
 
             <div className="md:col-span-2">
-              <label className="text-sm font-medium text-gray-700">
+              <label className="dg-label">
                 Wynik netto (w tys. zł)
               </label>
               <input
@@ -506,7 +507,7 @@ export default function DemoReportForm({
                 value={netProfit}
                 onChange={(e) => setNetProfit(e.target.value)}
                 placeholder="np. 310"
-                className="mt-2 w-full rounded-lg border px-3 py-2.5 outline-none transition focus:border-black"
+                className="dg-input"
               />
             </div>
           </div>
@@ -518,7 +519,7 @@ export default function DemoReportForm({
           type="button"
           onClick={fillSampleData}
           disabled={loading}
-          className="rounded-lg border border-slate-300 px-5 py-2.5 font-medium text-slate-800 hover:bg-slate-50"
+          className="dg-btn dg-btn-secondary px-5 py-3"
         >
           Wstaw przykładowe dane
         </button>
@@ -527,12 +528,11 @@ export default function DemoReportForm({
           type="button"
           onClick={handleGenerate}
           disabled={loading}
-          className={`rounded-lg px-5 py-2.5 font-medium text-white ${
-            loading ? "bg-gray-400" : "bg-black hover:bg-gray-800"
-          }`}
+          className="dg-btn dg-btn-primary px-5 py-3"
         >
           {loading ? "Generowanie..." : "Generuj raport"}
         </button>
+      </div>
       </div>
     </section>
   );

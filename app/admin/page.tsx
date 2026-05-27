@@ -184,9 +184,9 @@ export default function AdminPage() {
       }
 
       await refreshAll();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      alert(error?.message || "Wystąpił błąd.");
+      alert(error instanceof Error ? error.message : "Wystąpił błąd.");
     } finally {
       setActionLoading(null);
     }
@@ -217,9 +217,9 @@ export default function AdminPage() {
       }
 
       await refreshAll();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      alert(error?.message || "Wystąpił błąd.");
+      alert(error instanceof Error ? error.message : "Wystąpił błąd.");
     } finally {
       setActionLoading(null);
     }
@@ -229,16 +229,17 @@ export default function AdminPage() {
   if (denied) return <p className="p-6">Brak dostępu.</p>;
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="rounded-2xl border bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-bold">Panel admina</h1>
-        <p className="mt-1 text-sm text-gray-500">
+    <div className="space-y-6 bg-[var(--dg-gray-50)] p-6">
+      <div className="dg-card p-6">
+        <span className="dg-module-badge">DataGate Admin</span>
+        <h1 className="dg-title mt-3 text-2xl">Panel admina</h1>
+        <p className="mt-1 text-sm text-[var(--dg-gray-500)]">
           Zarządzanie użytkownikami, raportami i statystykami systemu.
         </p>
       </div>
 
-      <div className="rounded-2xl border bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold">Raporty według branży</h2>
+      <div className="dg-card p-6">
+        <h2 className="mb-4 text-sm font-semibold text-[var(--dg-navy)]">Raporty według branży</h2>
 
         {industryStats.length === 0 ? (
           <p className="text-sm text-gray-500">Brak danych branżowych.</p>
@@ -247,7 +248,7 @@ export default function AdminPage() {
             {industryStats.map((item) => (
               <div
                 key={item.key}
-                className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-2"
+                className="flex items-center justify-between rounded-[var(--dg-radius-sm)] bg-[var(--dg-gray-50)] px-4 py-2"
               >
                 <span>{item.label}</span>
                 <span className="font-semibold">{item.count}</span>
@@ -257,16 +258,16 @@ export default function AdminPage() {
         )}
       </div>
 
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
+      <div className="dg-card p-4">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Użytkownicy</h2>
-          <span className="text-sm text-gray-500">Łącznie: {users.length}</span>
+          <h2 className="text-sm font-semibold text-[var(--dg-navy)]">Użytkownicy</h2>
+          <span className="text-sm text-[var(--dg-gray-500)]">Łącznie: {users.length}</span>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="dg-table min-w-full">
             <thead>
-              <tr className="border-b text-left text-gray-500">
+              <tr>
                 <th className="px-3 py-3">Email</th>
                 <th className="px-3 py-3">UID</th>
                 <th className="px-3 py-3">Rola</th>
@@ -284,7 +285,7 @@ export default function AdminPage() {
 
                 return (
                   <tr key={u.uid} className="border-b align-top">
-                    <td className="px-3 py-3 font-medium text-gray-900">
+                    <td className="px-3 py-3 font-medium text-[var(--dg-navy)]">
                       {u.email || "—"}
                     </td>
                     <td className="px-3 py-3 text-xs text-gray-500">{u.uid}</td>
@@ -305,7 +306,7 @@ export default function AdminPage() {
                         <button
                           onClick={() => handleUserAction(u.uid, "toggle-disable")}
                           disabled={isBusy}
-                          className="rounded border px-3 py-1 text-sm hover:bg-gray-50 disabled:opacity-50"
+                          className="dg-btn dg-btn-secondary px-3 py-2"
                         >
                           {u.disabled ? "Odblokuj" : "Zablokuj"}
                         </button>
@@ -313,7 +314,7 @@ export default function AdminPage() {
                         <button
                           onClick={() => handleUserAction(u.uid, "delete-user")}
                           disabled={isBusy || meUid === u.uid}
-                          className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+                          className="dg-btn dg-btn-danger px-3 py-2"
                         >
                           Usuń
                         </button>
@@ -327,19 +328,19 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
+      <div className="dg-card p-4">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Raporty</h2>
-          <span className="text-sm text-gray-500">Łącznie: {reports.length}</span>
+          <h2 className="text-sm font-semibold text-[var(--dg-navy)]">Raporty</h2>
+          <span className="text-sm text-[var(--dg-gray-500)]">Łącznie: {reports.length}</span>
         </div>
 
         {reports.length === 0 ? (
           <p className="text-sm text-gray-500">Brak raportów.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="dg-table min-w-full">
               <thead>
-                <tr className="border-b text-left text-gray-500">
+                <tr>
                   <th className="px-3 py-3">Nazwa</th>
                   <th className="px-3 py-3">Owner UID</th>
                   <th className="px-3 py-3">Branża</th>
@@ -355,7 +356,7 @@ export default function AdminPage() {
 
                   return (
                     <tr key={report.id} className="border-b align-top">
-                      <td className="px-3 py-3 font-medium text-gray-900">
+                      <td className="px-3 py-3 font-medium text-[var(--dg-navy)]">
                         {report.name || "Bez nazwy"}
                       </td>
                       <td className="px-3 py-3 text-xs text-gray-500">
@@ -370,7 +371,7 @@ export default function AdminPage() {
                           <button
                             onClick={() => handleDeleteReport(report.id)}
                             disabled={isBusy}
-                            className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+                            className="dg-btn dg-btn-danger px-3 py-2"
                           >
                             Usuń raport
                           </button>

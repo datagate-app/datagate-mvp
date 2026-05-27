@@ -25,24 +25,28 @@ export function UserMenu() {
   if (!user) return null;
 
   return (
-    <div className="flex items-center gap-3">
-      {user.photoURL && (
+    <div className="flex min-w-0 items-center gap-2">
+      {user.photoURL ? (
         <img
           src={user.photoURL}
           alt="avatar"
           className="h-8 w-8 rounded-full"
         />
+      ) : (
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--dg-blue)] to-[var(--dg-teal)] text-xs font-semibold text-white">
+          {(user.email?.[0] ?? "U").toUpperCase()}
+        </div>
       )}
 
-      <span className="text-sm text-gray-700">
+      <span className="hidden max-w-[180px] truncate text-xs text-[var(--dg-gray-500)] lg:block">
         {user.email}
       </span>
 
       <button
         onClick={handleLogout}
-        className="rounded-md border px-3 py-1 text-sm hover:bg-gray-100"
+        className="dg-btn dg-btn-secondary px-3 py-2"
       >
-        Logout
+        Wyloguj
       </button>
     </div>
   );
