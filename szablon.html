@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DataGate — Your gate to better insights</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy: #0d1a34;
+  --navy-mid: #142040;
+  --navy-light: #1c2d52;
+  --navy-border: #1f3060;
+  --blue-accent: #2563eb;
+  --teal: #0ea5e9;
+  --teal-light: #38bdf8;
+  --cyan-soft: #67e8f9;
+  --white: #ffffff;
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --green: #10b981;
+  --green-light: #d1fae5;
+  --yellow: #f59e0b;
+  --yellow-light: #fef3c7;
+  --red: #ef4444;
+  --red-light: #fee2e2;
+  --orange: #f97316;
+  --sidebar-w: 240px;
+  --topbar-h: 64px;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  --shadow: 0 4px 16px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.06);
+  --shadow-lg: 0 10px 40px rgba(0,0,0,.12), 0 4px 12px rgba(0,0,0,.08);
+}
+
+html, body { height: 100%; font-family: 'Sora', sans-serif; background: var(--gray-50); color: var(--navy); }
+
+/* ── LAYOUT ── */
+.app { display: flex; height: 100vh; overflow: hidden; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar-w); flex-shrink: 0;
+  background: var(--navy);
+  display: flex; flex-direction: column;
+  overflow-y: auto; overflow-x: hidden;
+  position: relative; z-index: 10;
+}
+.sidebar::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(14,165,233,.04) 0%, transparent 50%);
+}
+.sidebar-logo {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.logo-mark {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 4px;
+}
+.logo-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--teal) 0%, var(--blue-accent) 100%);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.logo-icon svg { width: 18px; height: 18px; fill: white; }
+.logo-name { font-size: 17px; font-weight: 700; color: white; letter-spacing: -.3px; }
+.logo-tagline { font-size: 10px; color: rgba(255,255,255,.35); letter-spacing: .5px; padding-left: 42px; }
+
+.sidebar-nav { flex: 1; padding: 12px 0; }
+.nav-section { margin-bottom: 4px; }
+.nav-section-label {
+  padding: 14px 16px 6px;
+  font-size: 9px; font-weight: 600; letter-spacing: 1.2px;
+  color: rgba(255,255,255,.25); text-transform: uppercase;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px; margin: 1px 8px;
+  border-radius: var(--radius-sm); cursor: pointer;
+  transition: all .15s ease; position: relative;
+  font-size: 13px; font-weight: 400; color: rgba(255,255,255,.55);
+  user-select: none;
+}
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; opacity: .7; }
+.nav-item:hover { background: rgba(255,255,255,.06); color: rgba(255,255,255,.85); }
+.nav-item:hover svg { opacity: 1; }
+.nav-item.active {
+  background: linear-gradient(135deg, rgba(14,165,233,.2) 0%, rgba(37,99,235,.15) 100%);
+  color: white; font-weight: 500;
+  box-shadow: inset 0 0 0 1px rgba(14,165,233,.25);
+}
+.nav-item.active svg { opacity: 1; }
+.nav-item.active::before {
+  content: ''; position: absolute; left: -8px; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 18px; background: var(--teal); border-radius: 2px;
+}
+.nav-badge {
+  margin-left: auto; background: var(--red); color: white;
+  font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 10px;
+}
+
+.sidebar-bottom {
+  border-top: 1px solid rgba(255,255,255,.06); padding: 12px 0 8px;
+}
+.sidebar-user {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px 14px; margin: 0 8px;
+  border-radius: var(--radius-sm);
+}
+.user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; color: white; flex-shrink: 0;
+}
+.user-info { flex: 1; min-width: 0; }
+.user-name { font-size: 12px; font-weight: 500; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-role { font-size: 10px; color: rgba(255,255,255,.35); }
+
+/* ── MAIN ── */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* ── TOPBAR ── */
+.topbar {
+  height: var(--topbar-h); background: white; flex-shrink: 0;
+  display: flex; align-items: center; padding: 0 24px; gap: 16px;
+  border-bottom: 1px solid var(--gray-200);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.topbar-title { flex: 1; }
+.topbar-title h1 { font-size: 16px; font-weight: 600; color: var(--navy); letter-spacing: -.2px; }
+.topbar-title p { font-size: 12px; color: var(--gray-400); margin-top: 1px; }
+
+.search-bar {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--gray-100); border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm); padding: 8px 12px; width: 220px;
+  transition: all .15s;
+}
+.search-bar:focus-within { background: white; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(14,165,233,.1); }
+.search-bar svg { width: 14px; height: 14px; color: var(--gray-400); flex-shrink: 0; }
+.search-bar input { border: none; background: none; font-size: 13px; color: var(--navy); outline: none; width: 100%; font-family: 'Sora', sans-serif; }
+.search-bar input::placeholder { color: var(--gray-400); }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; font-family: 'Sora', sans-serif; text-decoration: none; }
+.btn-primary { background: linear-gradient(135deg, var(--teal) 0%, var(--blue-accent) 100%); color: white; box-shadow: 0 2px 8px rgba(14,165,233,.3); }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(14,165,233,.4); }
+.btn-secondary { background: white; color: var(--gray-600); border: 1px solid var(--gray-200); }
+.btn-secondary:hover { background: var(--gray-50); border-color: var(--gray-300); }
+.btn-ghost { background: transparent; color: var(--gray-500); padding: 8px; }
+.btn-ghost:hover { background: var(--gray-100); color: var(--navy); }
+.btn svg { width: 14px; height: 14px; }
+
+.notif-btn { position: relative; }
+.notif-dot { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; background: var(--red); border-radius: 50%; border: 2px solid white; }
+
+/* ── CONTENT ── */
+.content { flex: 1; overflow-y: auto; padding: 24px; }
+
+/* ── PAGE ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── CARDS ── */
+.card {
+  background: white; border-radius: var(--radius); border: 1px solid var(--gray-200);
+  box-shadow: var(--shadow-sm);
+}
+.card-header { padding: 18px 20px 0; display: flex; align-items: center; justify-content: space-between; }
+.card-title { font-size: 14px; font-weight: 600; color: var(--navy); }
+.card-subtitle { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
+.card-body { padding: 18px 20px; }
+
+/* ── KPI GRID ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.kpi-card {
+  background: white; border-radius: var(--radius); border: 1px solid var(--gray-200);
+  padding: 20px; box-shadow: var(--shadow-sm); position: relative; overflow: hidden;
+  transition: transform .15s, box-shadow .15s;
+}
+.kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.kpi-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+}
+.kpi-card.blue::before { background: linear-gradient(90deg, var(--teal), var(--blue-accent)); }
+.kpi-card.green::before { background: linear-gradient(90deg, var(--green), #059669); }
+.kpi-card.yellow::before { background: linear-gradient(90deg, var(--yellow), #d97706); }
+.kpi-card.red::before { background: linear-gradient(90deg, var(--red), #dc2626); }
+
+.kpi-label { font-size: 11px; font-weight: 500; color: var(--gray-400); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.kpi-label svg { width: 14px; height: 14px; }
+.kpi-value { font-size: 28px; font-weight: 700; color: var(--navy); letter-spacing: -1px; line-height: 1; margin-bottom: 6px; }
+.kpi-change { font-size: 12px; }
+.kpi-change.up { color: var(--green); }
+.kpi-change.down { color: var(--red); }
+.kpi-change.neutral { color: var(--gray-400); }
+
+/* ── TABLE ── */
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 600; color: var(--gray-400); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--gray-100); background: var(--gray-50); }
+.data-table th:first-child { border-radius: var(--radius-sm) 0 0 0; }
+.data-table th:last-child { border-radius: 0 var(--radius-sm) 0 0; }
+.data-table td { padding: 12px 14px; border-bottom: 1px solid var(--gray-100); color: var(--navy); vertical-align: middle; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--gray-50); }
+
+/* ── STATUS BADGES ── */
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+.badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; }
+.badge-green { background: var(--green-light); color: #065f46; }
+.badge-green::before { background: var(--green); }
+.badge-yellow { background: var(--yellow-light); color: #92400e; }
+.badge-yellow::before { background: var(--yellow); }
+.badge-red { background: var(--red-light); color: #991b1b; }
+.badge-red::before { background: var(--red); }
+.badge-gray { background: var(--gray-100); color: var(--gray-500); }
+.badge-gray::before { background: var(--gray-400); }
+.badge-blue { background: #dbeafe; color: #1e40af; }
+.badge-blue::before { background: var(--blue-accent); }
+
+/* ── HEALTH SCORE ── */
+.health-score { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; }
+.health-bar-wrap { flex: 1; height: 6px; background: var(--gray-200); border-radius: 3px; min-width: 60px; overflow: hidden; }
+.health-bar { height: 100%; border-radius: 3px; }
+.health-bar.good { background: linear-gradient(90deg, var(--green), #34d399); }
+.health-bar.avg { background: linear-gradient(90deg, var(--yellow), #fbbf24); }
+.health-bar.bad { background: linear-gradient(90deg, var(--red), #f87171); }
+
+/* ── GRID LAYOUTS ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+.grid-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+.grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+.col-span-2 { grid-column: span 2; }
+
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.section-title { font-size: 14px; font-weight: 600; color: var(--navy); }
+.section-link { font-size: 12px; color: var(--teal); cursor: pointer; font-weight: 500; }
+.section-link:hover { color: var(--blue-accent); }
+.mb16 { margin-bottom: 16px; }
+.mb24 { margin-bottom: 24px; }
+.mb8 { margin-bottom: 8px; }
+
+/* ── ALERT / NOTICE ── */
+.alert { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: var(--radius-sm); margin-bottom: 8px; font-size: 13px; }
+.alert svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+.alert-red { background: var(--red-light); color: #991b1b; border: 1px solid #fecaca; }
+.alert-yellow { background: var(--yellow-light); color: #92400e; border: 1px solid #fde68a; }
+.alert-blue { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+.alert-green { background: var(--green-light); color: #065f46; border: 1px solid #a7f3d0; }
+.alert-text strong { display: block; font-weight: 600; margin-bottom: 1px; font-size: 12px; }
+
+/* ── QUICK ACTIONS ── */
+.quick-action {
+  background: white; border: 1px solid var(--gray-200); border-radius: var(--radius);
+  padding: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  cursor: pointer; transition: all .15s;
+}
+.quick-action:hover { border-color: var(--teal); box-shadow: 0 4px 12px rgba(14,165,233,.1); transform: translateY(-1px); }
+.qa-icon { width: 38px; height: 38px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; }
+.qa-icon svg { width: 18px; height: 18px; }
+.qa-label { font-size: 13px; font-weight: 500; color: var(--navy); }
+.qa-desc { font-size: 11px; color: var(--gray-400); }
+
+/* ── CHART CSS ── */
+.bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 120px; padding: 0 4px; }
+.bar-group { display: flex; flex-direction: column; align-items: center; flex: 1; gap: 6px; height: 100%; justify-content: flex-end; }
+.bar-wrap { width: 100%; display: flex; align-items: flex-end; gap: 3px; flex: 1; }
+.bar { border-radius: 4px 4px 0 0; transition: opacity .15s; min-height: 4px; }
+.bar:hover { opacity: .8; }
+.bar-navy { background: linear-gradient(180deg, var(--navy-light) 0%, var(--navy) 100%); width: 45%; }
+.bar-teal { background: linear-gradient(180deg, var(--teal) 0%, var(--blue-accent) 100%); width: 45%; }
+.bar-label { font-size: 10px; color: var(--gray-400); white-space: nowrap; }
+
+.donut-wrap { display: flex; align-items: center; gap: 20px; }
+.donut { position: relative; width: 100px; height: 100px; flex-shrink: 0; }
+.donut svg { transform: rotate(-90deg); }
+.donut-value { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: var(--navy); }
+.donut-legend { display: flex; flex-direction: column; gap: 8px; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--gray-500); }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── INDICATOR CARD ── */
+.indicator-card {
+  background: white; border: 1px solid var(--gray-200); border-radius: var(--radius);
+  padding: 16px; transition: all .15s;
+}
+.indicator-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+.ind-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+.ind-name { font-size: 12px; font-weight: 500; color: var(--gray-500); }
+.ind-value { font-size: 22px; font-weight: 700; color: var(--navy); letter-spacing: -.5px; margin-bottom: 4px; }
+.ind-desc { font-size: 11px; color: var(--gray-400); line-height: 1.5; }
+
+/* ── UPLOAD BOX ── */
+.upload-box {
+  border: 2px dashed var(--gray-300); border-radius: var(--radius);
+  padding: 32px 24px; text-align: center; cursor: pointer;
+  transition: all .15s; background: var(--gray-50);
+}
+.upload-box:hover { border-color: var(--teal); background: rgba(14,165,233,.03); }
+.upload-box.drag { border-color: var(--teal); background: rgba(14,165,233,.06); }
+.upload-icon { width: 48px; height: 48px; background: var(--gray-100); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
+.upload-icon svg { width: 24px; height: 24px; color: var(--gray-400); }
+.upload-title { font-size: 14px; font-weight: 600; color: var(--navy); margin-bottom: 6px; }
+.upload-desc { font-size: 12px; color: var(--gray-400); margin-bottom: 14px; }
+.upload-types { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.type-chip { background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 6px; padding: 3px 9px; font-size: 11px; font-weight: 500; color: var(--gray-500); font-family: 'DM Mono', monospace; }
+
+/* ── FORM ── */
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 12px; font-weight: 500; color: var(--gray-600); margin-bottom: 6px; }
+.form-input, .form-select {
+  width: 100%; padding: 9px 12px; border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm); font-size: 13px; color: var(--navy);
+  background: white; outline: none; font-family: 'Sora', sans-serif;
+  transition: all .15s;
+}
+.form-input:focus, .form-select:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(14,165,233,.1); }
+.form-input::placeholder { color: var(--gray-400); }
+.checkbox-group { display: flex; flex-direction: column; gap: 10px; }
+.checkbox-item { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.checkbox-item input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--teal); cursor: pointer; }
+.checkbox-item label { font-size: 13px; color: var(--navy); cursor: pointer; }
+
+/* ── HOW IT WORKS ── */
+.how-step { display: flex; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--gray-100); }
+.how-step:last-child { border-bottom: none; }
+.step-num { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--teal), var(--blue-accent)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; flex-shrink: 0; }
+.step-text strong { display: block; font-size: 13px; font-weight: 600; color: var(--navy); margin-bottom: 2px; }
+.step-text p { font-size: 12px; color: var(--gray-400); }
+
+/* ── SCENARIO CARD ── */
+.scenario-card {
+  background: white; border: 1px solid var(--gray-200); border-radius: var(--radius);
+  padding: 20px; transition: all .15s; cursor: pointer;
+}
+.scenario-card:hover { border-color: var(--teal); box-shadow: 0 4px 16px rgba(14,165,233,.12); }
+.sc-icon { width: 40px; height: 40px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+.sc-title { font-size: 14px; font-weight: 600; color: var(--navy); margin-bottom: 6px; }
+.sc-desc { font-size: 12px; color: var(--gray-400); margin-bottom: 14px; }
+.sc-impact { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.sc-metric { background: var(--gray-50); border-radius: var(--radius-sm); padding: 8px 10px; }
+.sc-metric-label { font-size: 10px; color: var(--gray-400); margin-bottom: 2px; }
+.sc-metric-val { font-size: 13px; font-weight: 600; }
+.sc-metric-val.up { color: var(--green); }
+.sc-metric-val.down { color: var(--red); }
+.sc-metric-val.neutral { color: var(--yellow); }
+.range-wrap { display: flex; align-items: center; gap: 8px; }
+.range-wrap input[type=range] { flex: 1; accent-color: var(--teal); }
+.range-val { font-size: 12px; font-weight: 600; color: var(--teal); min-width: 36px; text-align: right; }
+
+/* ── BUDGET ── */
+.budget-row-plan { background: rgba(14,165,233,.04); }
+.budget-row-actual { background: white; }
+.delta-pos { color: var(--green); font-weight: 600; }
+.delta-neg { color: var(--red); font-weight: 600; }
+
+/* ── AI BLOCK ── */
+.ai-block {
+  background: linear-gradient(135deg, rgba(13,26,52,.04) 0%, rgba(14,165,233,.06) 100%);
+  border: 1px solid rgba(14,165,233,.2); border-radius: var(--radius);
+  padding: 18px 20px;
+}
+.ai-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.ai-pill { display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg, var(--teal), var(--blue-accent)); color: white; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.ai-pill::before { content: ''; width: 5px; height: 5px; background: white; border-radius: 50%; opacity: .8; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100% { opacity: .8; } 50% { opacity: .3; } }
+.ai-text { font-size: 13px; color: var(--gray-600); line-height: 1.7; }
+
+/* ── WELCOME BANNER ── */
+.welcome-banner {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 60%, #1a3a6e 100%);
+  border-radius: var(--radius); padding: 24px 28px; color: white; margin-bottom: 24px;
+  position: relative; overflow: hidden;
+}
+.welcome-banner::after {
+  content: ''; position: absolute; top: -40px; right: -40px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(14,165,233,.15) 0%, transparent 70%);
+}
+.welcome-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.welcome-sub { font-size: 13px; color: rgba(255,255,255,.55); }
+.welcome-stats { display: flex; gap: 24px; margin-top: 16px; }
+.ws { }
+.ws-val { font-size: 20px; font-weight: 700; color: white; }
+.ws-label { font-size: 11px; color: rgba(255,255,255,.4); }
+
+/* ── FILTER BAR ── */
+.filter-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.filter-select { padding: 7px 10px; border: 1px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 12px; color: var(--navy); background: white; outline: none; font-family: 'Sora', sans-serif; cursor: pointer; }
+.filter-select:focus { border-color: var(--teal); }
+
+/* ── PROGRESS RING ── */
+.score-ring { position: relative; width: 80px; height: 80px; }
+.score-ring svg { transform: rotate(-90deg); }
+.score-ring .ring-bg { fill: none; stroke: var(--gray-100); stroke-width: 8; }
+.score-ring .ring-fg { fill: none; stroke-width: 8; stroke-linecap: round; }
+.score-ring .ring-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.score-ring .ring-num { font-size: 16px; font-weight: 700; color: var(--navy); line-height: 1; }
+.score-ring .ring-denom { font-size: 9px; color: var(--gray-400); }
+
+/* ── MINI SPARKLINE ── */
+.sparkline { display: flex; align-items: flex-end; gap: 2px; height: 32px; }
+.spark-bar { border-radius: 2px 2px 0 0; flex: 1; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1100px) {
+  .kpi-grid { grid-template-columns: repeat(2,1fr); }
+  .grid-4 { grid-template-columns: repeat(2,1fr); }
+}
+@media (max-width: 800px) {
+  :root { --sidebar-w: 200px; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-1-2 { grid-template-columns: 1fr; }
+  .grid-2-1 { grid-template-columns: 1fr; }
+  .kpi-grid { grid-template-columns: repeat(2,1fr); }
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gray-300); }
+
+/* ── LOADING OVERLAY ── */
+.loading-overlay {
+  position: fixed; inset: 0; background: rgba(13,26,52,.85); z-index: 100;
+  display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 20px;
+  opacity: 0; pointer-events: none; transition: opacity .3s;
+}
+.loading-overlay.show { opacity: 1; pointer-events: all; }
+.loading-spinner {
+  width: 48px; height: 48px; border: 3px solid rgba(255,255,255,.1);
+  border-top-color: var(--teal); border-radius: 50%; animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { color: white; font-size: 14px; font-weight: 500; }
+.loading-sub { color: rgba(255,255,255,.4); font-size: 12px; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 200;
+  background: var(--navy); color: white; padding: 12px 18px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500; box-shadow: var(--shadow-lg);
+  transform: translateY(20px); opacity: 0; transition: all .3s;
+  display: flex; align-items: center; gap: 8px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast svg { width: 16px; height: 16px; color: var(--teal); }
+
+.divider { height: 1px; background: var(--gray-100); margin: 20px 0; }
+
+.text-muted { color: var(--gray-400); font-size: 12px; }
+.text-sm { font-size: 13px; }
+.fw-600 { font-weight: 600; }
+
+.company-logo {
+  width: 32px; height: 32px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: white; flex-shrink: 0;
+}
+
+/* health overview bars */
+.health-overview { display: flex; flex-direction: column; gap: 12px; }
+.ho-item { display: flex; align-items: center; gap: 12px; }
+.ho-label { font-size: 12px; color: var(--gray-500); width: 100px; flex-shrink: 0; }
+.ho-bar-wrap { flex: 1; height: 8px; background: var(--gray-100); border-radius: 4px; overflow: hidden; }
+.ho-bar { height: 100%; border-radius: 4px; }
+.ho-val { font-size: 12px; font-weight: 600; color: var(--navy); width: 36px; text-align: right; flex-shrink: 0; }
+
+/* module badge */
+.module-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(14,165,233,.1); color: var(--teal);
+  border: 1px solid rgba(14,165,233,.2);
+  padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: .3px;
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24"><path d="M3 3h7v7H3zm11 0h7v7h-7zM3 14h7v7H3zm11 4h2v-2h2v2h2v2h-2v2h-2v-2h-2z"/></svg>
+        </div>
+        <span class="logo-name">DataGate</span>
+      </div>
+      <div class="logo-tagline">Your gate to better insights</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-label">DataGate Analyze</div>
+        <div class="nav-item active" onclick="navigate('dashboard', this)">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+          Dashboard
+        </div>
+        <div class="nav-item" onclick="navigate('create', this)">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+          Utwórz raport
+        </div>
+        <div class="nav-item" onclick="navigate('reports', this)">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
+          Moje raporty
+          <span class="nav-badge">4</span>
+        </div>
+        <div class="nav-item" onclick="navigate('analysis', this)">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+          Analiza wskaźnikowa
+        </div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-label">DataGate Scenario</div>
+        <div class="nav-item" onclick="navigate('scenarios', this)">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+          Scenariusze
+        </div>
+        <div class="nav-item" onclick="navigate('scenarios', this)">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 16L12 15.45 7.77 18l1.12-4.81-3.73-3.23 4.92-.42L12 5l1.92 4.53 4.92.42-3.73 3.23L16.23 18z"/></svg>
+          Symulacje „co jeśli"
+        </div>
+        <div class="nav-item" onclick="navigate('scenarios', this)">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
+          Prognozy
+        </div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-label">DataGate Budget</div>
+        <div class="nav-item" onclick="navigate('budget', this)">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+          Budżety
+        </div>
+        <div class="nav-item" onclick="navigate('budget', this)">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
+          Plan vs wykonanie
+        </div>
+        <div class="nav-item" onclick="navigate('budget', this)">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+          Odchylenia
+        </div>
+      </div>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="nav-item" onclick="showToast('Otwieranie ustawień...')">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        Ustawienia
+      </div>
+      <div class="nav-item" onclick="showToast('Otwieranie centrum pomocy...')">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
+        Pomoc
+      </div>
+      <div class="nav-item" style="color:rgba(239,68,68,.6)" onclick="showToast('Wylogowano pomyślnie.')">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+        Wyloguj
+      </div>
+
+      <div class="sidebar-user">
+        <div class="user-avatar">MK</div>
+        <div class="user-info">
+          <div class="user-name">Marek Kowalski</div>
+          <div class="user-role">Analityk finansowy</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-title">
+        <h1 id="topbar-title">Dashboard</h1>
+        <p id="topbar-crumb">Przegląd · Maj 2025</p>
+      </div>
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <input type="text" placeholder="Szukaj raportów, firm...">
+      </div>
+      <button class="btn btn-primary" onclick="navigate('create', document.querySelector('.nav-item:nth-child(2)'))">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        Nowy raport
+      </button>
+      <button class="btn btn-ghost notif-btn" onclick="showToast('Masz 3 nowe powiadomienia.')">
+        <div class="notif-dot"></div>
+        <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+      </button>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- ═══ DASHBOARD ═══ -->
+      <div class="page active" id="page-dashboard">
+        <div class="welcome-banner">
+          <div class="welcome-title">Dzień dobry, Marku 👋</div>
+          <div class="welcome-sub">Masz 1 raport oczekujący na przegląd i 2 alerty wymagające uwagi.</div>
+          <div class="welcome-stats">
+            <div class="ws"><div class="ws-val">4</div><div class="ws-label">Raporty łącznie</div></div>
+            <div class="ws"><div class="ws-val">74/100</div><div class="ws-label">Śr. kondycja</div></div>
+            <div class="ws"><div class="ws-val">28.05</div><div class="ws-label">Ostatnia analiza</div></div>
+            <div class="ws"><div class="ws-val">2</div><div class="ws-label">Alerty</div></div>
+          </div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card blue">
+            <div class="kpi-label">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
+              Liczba raportów
+            </div>
+            <div class="kpi-value">4</div>
+            <div class="kpi-change up">▲ +1 w tym miesiącu</div>
+          </div>
+          <div class="kpi-card green">
+            <div class="kpi-label">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+              Ostatnia analiza
+            </div>
+            <div class="kpi-value">28.05</div>
+            <div class="kpi-change neutral">ORLEN 2024</div>
+          </div>
+          <div class="kpi-card yellow">
+            <div class="kpi-label">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 20h2v-2h-2v2zm0-4h2V4h-2v12zm0-10V4h2v2h-2z"/></svg>
+              Śr. wynik kondycji
+            </div>
+            <div class="kpi-value">74<span style="font-size:14px;color:var(--gray-400)">/100</span></div>
+            <div class="kpi-change up">▲ +3 vs poprzedni kw.</div>
+          </div>
+          <div class="kpi-card red">
+            <div class="kpi-label">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+              Wymagają uwagi
+            </div>
+            <div class="kpi-value">2</div>
+            <div class="kpi-change down">▼ Boryszew, Demo</div>
+          </div>
+        </div>
+
+        <div class="grid-2-1 mb24">
+          <div class="card">
+            <div class="card-header mb8">
+              <div>
+                <div class="card-title">Ostatnie raporty</div>
+                <div class="card-subtitle">4 raporty · aktualizowane dziś</div>
+              </div>
+              <span class="section-link" onclick="navigate('reports', document.querySelectorAll('.nav-item')[2])">Zobacz wszystkie →</span>
+            </div>
+            <div class="card-body" style="padding-top:8px">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Firma</th><th>Branża</th><th>Data</th><th>Status</th><th>Kondycja</th><th>Akcja</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <div class="company-logo" style="background:linear-gradient(135deg,#e63946,#c1121f)">OR</div>
+                        <strong>ORLEN 2024</strong>
+                      </div>
+                    </td>
+                    <td class="text-muted">Paliwa</td>
+                    <td class="text-muted">28.05.2025</td>
+                    <td><span class="badge badge-green">Gotowy</span></td>
+                    <td>
+                      <div class="health-score">
+                        <div class="health-bar-wrap"><div class="health-bar good" style="width:82%"></div></div>
+                        <span style="font-size:12px;font-weight:600">82</span>
+                      </div>
+                    </td>
+                    <td><button class="btn btn-secondary" style="padding:5px 10px;font-size:12px" onclick="navigate('analysis',document.querySelectorAll('.nav-item')[3])">Otwórz</button></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <div class="company-logo" style="background:linear-gradient(135deg,#2563eb,#1d4ed8)">LP</div>
+                        <strong>LPP 2024</strong>
+                      </div>
+                    </td>
+                    <td class="text-muted">Odzież</td>
+                    <td class="text-muted">22.05.2025</td>
+                    <td><span class="badge badge-green">Gotowy</span></td>
+                    <td>
+                      <div class="health-score">
+                        <div class="health-bar-wrap"><div class="health-bar good" style="width:78%"></div></div>
+                        <span style="font-size:12px;font-weight:600">78</span>
+                      </div>
+                    </td>
+                    <td><button class="btn btn-secondary" style="padding:5px 10px;font-size:12px" onclick="navigate('analysis',document.querySelectorAll('.nav-item')[3])">Otwórz</button></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <div class="company-logo" style="background:linear-gradient(135deg,#f59e0b,#d97706)">BO</div>
+                        <strong>Boryszew 2024</strong>
+                      </div>
+                    </td>
+                    <td class="text-muted">Przemysł</td>
+                    <td class="text-muted">18.05.2025</td>
+                    <td><span class="badge badge-red">Wymaga uwagi</span></td>
+                    <td>
+                      <div class="health-score">
+                        <div class="health-bar-wrap"><div class="health-bar bad" style="width:56%"></div></div>
+                        <span style="font-size:12px;font-weight:600">56</span>
+                      </div>
+                    </td>
+                    <td><button class="btn btn-secondary" style="padding:5px 10px;font-size:12px" onclick="navigate('analysis',document.querySelectorAll('.nav-item')[3])">Otwórz</button></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <div class="company-logo" style="background:linear-gradient(135deg,#10b981,#059669)">DM</div>
+                        <strong>Demo Sp. z o.o.</strong>
+                      </div>
+                    </td>
+                    <td class="text-muted">Usługi</td>
+                    <td class="text-muted">10.05.2025</td>
+                    <td><span class="badge badge-gray">Szkic</span></td>
+                    <td>
+                      <div class="health-score">
+                        <div class="health-bar-wrap"><div class="health-bar avg" style="width:65%"></div></div>
+                        <span style="font-size:12px;font-weight:600">65</span>
+                      </div>
+                    </td>
+                    <td><button class="btn btn-secondary" style="padding:5px 10px;font-size:12px" onclick="navigate('analysis',document.querySelectorAll('.nav-item')[3])">Otwórz</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Alerty</div><span class="badge badge-red">2</span></div>
+              <div class="card-body" style="padding-top:12px">
+                <div class="alert alert-red">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+                  <div class="alert-text"><strong>Wysokie zadłużenie</strong>Wskaźnik D/E Boryszew 2024 wynosi 2.4 — powyżej normy.</div>
+                </div>
+                <div class="alert alert-yellow">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+                  <div class="alert-text"><strong>Płynność bieżąca poniżej normy</strong>Demo Sp. z o.o.: CR = 0.92, rekomendowane &gt; 1.2.</div>
+                </div>
+                <div class="alert alert-blue">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                  <div class="alert-text"><strong>Raport ORLEN gotowy do eksportu</strong>Kliknij, aby pobrać raport w formacie PDF.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header mb8"><div class="card-title">Financial Health Overview</div></div>
+              <div class="card-body" style="padding-top:8px">
+                <div class="health-overview">
+                  <div class="ho-item">
+                    <div class="ho-label">ORLEN 2024</div>
+                    <div class="ho-bar-wrap"><div class="ho-bar" style="width:82%;background:linear-gradient(90deg,var(--green),#34d399)"></div></div>
+                    <div class="ho-val">82</div>
+                  </div>
+                  <div class="ho-item">
+                    <div class="ho-label">LPP 2024</div>
+                    <div class="ho-bar-wrap"><div class="ho-bar" style="width:78%;background:linear-gradient(90deg,var(--green),#34d399)"></div></div>
+                    <div class="ho-val">78</div>
+                  </div>
+                  <div class="ho-item">
+                    <div class="ho-label">Boryszew 2024</div>
+                    <div class="ho-bar-wrap"><div class="ho-bar" style="width:56%;background:linear-gradient(90deg,var(--red),#f87171)"></div></div>
+                    <div class="ho-val">56</div>
+                  </div>
+                  <div class="ho-item">
+                    <div class="ho-label">Demo Sp. z o.o.</div>
+                    <div class="ho-bar-wrap"><div class="ho-bar" style="width:65%;background:linear-gradient(90deg,var(--yellow),#fbbf24)"></div></div>
+                    <div class="ho-val">65</div>
+                  </div>
+                </div>
+                <div class="divider"></div>
+                <div style="display:flex;justify-content:center;align-items:center;gap:8px">
+                  <span class="text-muted">Średnia kondycja portfela:</span>
+                  <span style="font-size:14px;font-weight:700;color:var(--navy)">70.25 / 100</span>
+                  <span class="badge badge-yellow">Dobra</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb24">
+          <div class="section-header"><div class="section-title">Szybkie akcje</div></div>
+          <div class="grid-4">
+            <div class="quick-action" onclick="navigate('create', document.querySelectorAll('.nav-item')[1])">
+              <div class="qa-icon" style="background:rgba(14,165,233,.1)"><svg viewBox="0 0 24 24" fill="var(--teal)" width="18" height="18"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg></div>
+              <div><div class="qa-label">Utwórz raport</div><div class="qa-desc">Analizuj nowe dane</div></div>
+            </div>
+            <div class="quick-action" onclick="navigate('create', document.querySelectorAll('.nav-item')[1])">
+              <div class="qa-icon" style="background:rgba(37,99,235,.1)"><svg viewBox="0 0 24 24" fill="var(--blue-accent)" width="18" height="18"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg></div>
+              <div><div class="qa-label">Wgraj plik</div><div class="qa-desc">CSV, XLSX lub PDF</div></div>
+            </div>
+            <div class="quick-action" onclick="showToast('Moduł porównywania firm — wkrótce dostępny.')">
+              <div class="qa-icon" style="background:rgba(245,158,11,.1)"><svg viewBox="0 0 24 24" fill="var(--yellow)" width="18" height="18"><path d="M9.5 16H3v2h6.5v3L13 17l-3.5-4v3zm5-6H21V8h-6.5V5L11 9l3.5 4V10z"/></svg></div>
+              <div><div class="qa-label">Porównaj firmy</div><div class="qa-desc">Zestawienie raportów</div></div>
+            </div>
+            <div class="quick-action" onclick="showToast('Przygotowywanie eksportu PDF...')">
+              <div class="qa-icon" style="background:rgba(16,185,129,.1)"><svg viewBox="0 0 24 24" fill="var(--green)" width="18" height="18"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg></div>
+              <div><div class="qa-label">Eksportuj PDF</div><div class="qa-desc">Pobierz aktywny raport</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ UTWÓRZ RAPORT ═══ -->
+      <div class="page" id="page-create">
+        <div class="grid-2-1">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Nowy raport finansowy</div>
+                <div class="card-subtitle">Uzupełnij dane i wgraj plik finansowy</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Nazwa raportu</label>
+                  <input type="text" class="form-input" placeholder="np. Analiza Q2 2025">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Nazwa firmy</label>
+                  <input type="text" class="form-input" placeholder="np. PKN ORLEN S.A.">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Branża</label>
+                  <select class="form-select">
+                    <option>Wybierz branżę...</option>
+                    <option>Paliwa i energia</option>
+                    <option>Odzież i handel</option>
+                    <option>Przemysł ciężki</option>
+                    <option>Usługi finansowe</option>
+                    <option>Technologia</option>
+                    <option>Ochrona zdrowia</option>
+                    <option>Budownictwo</option>
+                    <option>Inne</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Okres analizy</label>
+                  <select class="form-select">
+                    <option>2024 (cały rok)</option>
+                    <option>2023 (cały rok)</option>
+                    <option>Q1 2025</option>
+                    <option>Q2 2025</option>
+                    <option>H1 2024</option>
+                    <option>Niestandardowy</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Format pliku danych</label>
+                <div style="display:flex;gap:10px">
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--navy)">
+                    <input type="radio" name="filetype" checked style="accent-color:var(--teal)"> CSV
+                  </label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--navy)">
+                    <input type="radio" name="filetype" style="accent-color:var(--teal)"> XLSX
+                  </label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--navy)">
+                    <input type="radio" name="filetype" style="accent-color:var(--teal)"> PDF
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group" id="upload-area">
+                <label class="form-label">Plik finansowy</label>
+                <div class="upload-box" id="drop-zone"
+                  ondragover="event.preventDefault();this.classList.add('drag')"
+                  ondragleave="this.classList.remove('drag')"
+                  ondrop="event.preventDefault();this.classList.remove('drag');handleDrop(event)"
+                  onclick="document.getElementById('file-input').click()">
+                  <div class="upload-icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                  </div>
+                  <div class="upload-title">Przeciągnij plik lub kliknij, aby wgrać</div>
+                  <div class="upload-desc">Obsługiwane formaty:</div>
+                  <div class="upload-types">
+                    <span class="type-chip">.csv</span>
+                    <span class="type-chip">.xlsx</span>
+                    <span class="type-chip">.xls</span>
+                    <span class="type-chip">.pdf</span>
+                  </div>
+                  <input type="file" id="file-input" style="display:none" accept=".csv,.xlsx,.xls,.pdf" onchange="handleFile(this)">
+                </div>
+                <div id="file-preview" style="display:none;margin-top:10px;padding:10px 14px;background:var(--green-light);border:1px solid #a7f3d0;border-radius:var(--radius-sm);display:none;align-items:center;gap:8px">
+                  <svg viewBox="0 0 24 24" fill="#065f46" width="16" height="16"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                  <span id="file-name" style="font-size:13px;color:#065f46;font-weight:500"></span>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Opcje raportu</label>
+                <div class="checkbox-group">
+                  <div class="checkbox-item"><input type="checkbox" id="cb1" checked><label for="cb1">Oblicz wskaźniki finansowe (płynność, rentowność, zadłużenie)</label></div>
+                  <div class="checkbox-item"><input type="checkbox" id="cb2" checked><label for="cb2">Dodaj interpretację wskaźników</label></div>
+                  <div class="checkbox-item"><input type="checkbox" id="cb3" checked><label for="cb3">Generuj rekomendacje</label></div>
+                  <div class="checkbox-item"><input type="checkbox" id="cb4"><label for="cb4">Przygotuj eksport PDF</label></div>
+                </div>
+              </div>
+
+              <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" onclick="generateReport()">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                Wygeneruj raport
+              </button>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Jak to działa?</div></div>
+              <div class="card-body" style="padding-top:10px">
+                <div class="how-step">
+                  <div class="step-num">1</div>
+                  <div class="step-text"><strong>Wgraj plik finansowy</strong><p>Obsługujemy bilanse, RZiS oraz dane cash flow w popularnych formatach.</p></div>
+                </div>
+                <div class="how-step">
+                  <div class="step-num">2</div>
+                  <div class="step-text"><strong>DataGate przetwarza dane</strong><p>Silnik analityczny automatycznie oblicza kilkadziesiąt wskaźników finansowych.</p></div>
+                </div>
+                <div class="how-step">
+                  <div class="step-num">3</div>
+                  <div class="step-text"><strong>Otrzymujesz pełny raport</strong><p>Wskaźniki, wykresy, interpretacje i rekomendacje w jednym miejscu.</p></div>
+                </div>
+                <div class="how-step">
+                  <div class="step-num">4</div>
+                  <div class="step-text"><strong>Pobierz lub przejdź dalej</strong><p>Eksportuj PDF dla klienta lub uruchom moduł scenariuszy.</p></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="border-color:rgba(14,165,233,.2);background:linear-gradient(135deg,rgba(14,165,233,.03),rgba(37,99,235,.03))">
+              <div class="card-body">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+                  <span class="module-badge">DataGate AI</span>
+                </div>
+                <p style="font-size:13px;color:var(--gray-600);line-height:1.7">Po wygenerowaniu raportu, moduł AI automatycznie przygotuje <strong>interpretację wyników</strong> i <strong>rekomendacje strategiczne</strong> dopasowane do branży i profilu firmy.</p>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-body">
+                <div class="card-title" style="margin-bottom:12px">Wymagania dotyczące pliku</div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <div class="alert alert-green" style="padding:8px 12px">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                    <span style="font-size:12px">Bilans (aktywa i pasywa)</span>
+                  </div>
+                  <div class="alert alert-green" style="padding:8px 12px">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                    <span style="font-size:12px">Rachunek zysków i strat</span>
+                  </div>
+                  <div class="alert alert-blue" style="padding:8px 12px">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M13 9h-2V7h2m0 10h-2v-6h2m-1-9A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2z"/></svg>
+                    <span style="font-size:12px">Cash flow (opcjonalnie)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ MOJE RAPORTY ═══ -->
+      <div class="page" id="page-reports">
+        <div class="card mb24">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Moje raporty</div>
+              <div class="card-subtitle">4 raporty łącznie</div>
+            </div>
+            <button class="btn btn-primary" onclick="navigate('create',document.querySelectorAll('.nav-item')[1])">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+              Nowy raport
+            </button>
+          </div>
+          <div class="card-body" style="padding-top:12px">
+            <div class="filter-bar mb16">
+              <select class="filter-select"><option>Wszystkie branże</option><option>Paliwa</option><option>Odzież</option><option>Przemysł</option><option>Usługi</option></select>
+              <select class="filter-select"><option>Wszystkie statusy</option><option>Gotowy</option><option>W trakcie</option><option>Wymaga uwagi</option><option>Szkic</option></select>
+              <select class="filter-select"><option>Każda data</option><option>Ten miesiąc</option><option>Ostatnie 3 miesiące</option><option>Ten rok</option></select>
+              <select class="filter-select"><option>Każda kondycja</option><option>Dobra (70+)</option><option>Średnia (50–70)</option><option>Ryzykowna (&lt;50)</option></select>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr><th>Firma</th><th>Branża</th><th>Okres</th><th>Data utworzenia</th><th>Status</th><th>Kondycja</th><th>Akcje</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><div style="display:flex;align-items:center;gap:8px"><div class="company-logo" style="background:linear-gradient(135deg,#e63946,#c1121f)">OR</div><div><div style="font-weight:600;font-size:13px">ORLEN 2024</div><div class="text-muted" style="font-size:11px">PKN ORLEN S.A.</div></div></div></td>
+                  <td class="text-muted">Paliwa i energia</td>
+                  <td class="text-muted">2024 (cały rok)</td>
+                  <td class="text-muted">28.05.2025</td>
+                  <td><span class="badge badge-green">Gotowy</span></td>
+                  <td><div class="health-score"><div class="health-bar-wrap"><div class="health-bar good" style="width:82%"></div></div><span style="font-size:12px;font-weight:600">82/100</span></div></td>
+                  <td>
+                    <div style="display:flex;gap:6px">
+                      <button class="btn btn-secondary" style="padding:5px 10px;font-size:11px" onclick="navigate('analysis',document.querySelectorAll('.nav-item')[3])">Otwórz</button>
+                      <button class="btn btn-secondary" style="padding:5px 10px;font-size:11px" onclick="showToast('Eksport PDF w toku...')">PDF</button>
+                      <button class="btn btn-ghost" style="padding:5px 8px;color:var(--red)" onclick="showToast('Raport usunięty.')">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><div style="display:flex;align-items:center;gap:8px"><div class="company-logo" style="background:linear-gradient(135deg,#2563eb,#1d4ed8)">LP</div><div><div style="font-weight:600;font-size:13px">LPP 2024</div><div class="text-muted" style="font-size:11px">LPP S.A.</div></div></div></td>
+                  <td class="text-muted">Odzież i handel</td>
+                  <td class="text-muted">2024 (cały rok)</td>
+                  <td class="text-muted">22.05.2025</td>
+                  <td><span class="badge badge-green">Gotowy</span></td>
+                  <td><div class="health-score"><div class="health-bar-wrap"><div class="health-bar good" style="width:78%"></div></div><span style="font-size:12px;font-weight:600">78/100</span></div></td>
+                  <td><div style="display:flex;gap:6px"><button class="btn btn-secondary" style="padding:5px 10px;font-size:11px" onclick="navigate('analysis',document.querySelectorAll('.nav-item')[3])">Otwórz</button><button class="btn btn-secondary" style="padding:5px 10px;font-size:11px" onclick="showToast('Eksport PDF w toku...')">PDF</button><button class="btn btn-ghost" style="padding:5px 8px;color:var(--red)" onclick="showToast('Raport usunięty.')"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button></div></td>
+                </tr>
+                <tr>
+                  <td><div style="display:flex;align-items:center;gap:8px"><div class="company-logo" style="background:linear-gradient(135deg,#f59e0b,#d97706)">BO</div><div><div style="font-weight:600;font-size:13px">Boryszew 2024</div><div class="text-muted" style="font-size:11px">Boryszew S.A.</div></div></div></td>
+                  <td class="text-muted">Przemysł ciężki</td>
+                  <td class="text-muted">2024 (cały rok)</td>
+                  <td class="text-muted">18.05.2025</td>
+                  <td><span class="badge badge-red">Wymaga uwagi</span></td>
+                  <td><div class="health-score"><div class="health-bar-wrap"><div class="health-bar bad" style="width:56%"></div></div><span style="font-size:12px;font-weight:600">56/100</span></div></td>
+                  <td><div style="display:flex;gap:6px"><button class="btn btn-secondary" style="padding:5px 10px;font-size:11px" onclick="navigate('analysis',document.querySelectorAll('.nav-item')[3])">Otwórz</button><button class="btn btn-secondary" style="padding:5px 10px;font-size:11px" onclick="showToast('Eksport PDF w toku...')">PDF</button><button class="btn btn-ghost" style="padding:5px 8px;color:var(--red)" onclick="showToast('Raport usunięty.')"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button></div></td>
+                </tr>
+                <tr>
+                  <td><div style="display:flex;align-items:center;gap:8px"><div class="company-logo" style="background:linear-gradient(135deg,#10b981,#059669)">DM</div><div><div style="font-weight:600;font-size:13px">Demo Sp. z o.o.</div><div class="text-muted" style="font-size:11px">Demo Sp. z o.o.</div></div></div></td>
+                  <td class="text-muted">Usługi</td>
+                  <td class="text-muted">2024 (cały rok)</td>
+                  <td class="text-muted">10.05.2025</td>
+                  <td><span class="badge badge-gray">Szkic</span></td>
+                  <td><div class="health-score"><div class="health-bar-wrap"><div class="health-bar avg" style="width:65%"></div></div><span style="font-size:12px;font-weight:600">65/100</span></div></td>
+                  <td><div style="display:flex;gap:6px"><button class="btn btn-secondary" style="padding:5px 10px;font-size:11px" onclick="navigate('analysis',document.querySelectorAll('.nav-item')[3])">Otwórz</button><button class="btn btn-secondary" style="padding:5px 10px;font-size:11px" onclick="showToast('Eksport PDF w toku...')">PDF</button><button class="btn btn-ghost" style="padding:5px 8px;color:var(--red)" onclick="showToast('Raport usunięty.')"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ ANALIZA WSKAŹNIKOWA ═══ -->
+      <div class="page" id="page-analysis">
+        <!-- Header raportu -->
+        <div class="card mb24">
+          <div class="card-body" style="padding:20px 24px">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+              <div style="display:flex;align-items:center;gap:14px">
+                <div class="company-logo" style="background:linear-gradient(135deg,#e63946,#c1121f);width:44px;height:44px;font-size:14px;border-radius:10px">OR</div>
+                <div>
+                  <div style="font-size:18px;font-weight:700;color:var(--navy);letter-spacing:-.3px">PKN ORLEN S.A. — Raport 2024</div>
+                  <div class="text-muted">Wygenerowano: 28.05.2025 · Paliwa i energia · Analityk: Marek Kowalski</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <div class="score-ring">
+                  <svg viewBox="0 0 80 80" width="80" height="80">
+                    <circle class="ring-bg" cx="40" cy="40" r="32"/>
+                    <circle class="ring-fg" cx="40" cy="40" r="32"
+                      stroke="url(#ringGrad)" stroke-dasharray="201" stroke-dashoffset="36"/>
+                    <defs>
+                      <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#10b981"/>
+                        <stop offset="100%" stop-color="#34d399"/>
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div class="ring-text"><div class="ring-num">82</div><div class="ring-denom">/100</div></div>
+                </div>
+                <div>
+                  <div style="font-size:12px;color:var(--gray-400);margin-bottom:2px">Ocena kondycji</div>
+                  <span class="badge badge-green" style="font-size:12px">Dobra</span>
+                </div>
+              </div>
+            </div>
+            <div class="divider"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-primary" onclick="showToast('Eksport PDF — generowanie...')">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                Eksportuj PDF
+              </button>
+              <button class="btn btn-secondary" onclick="navigate('scenarios',document.querySelectorAll('.nav-item')[4])">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+                Przejdź do scenariuszy
+              </button>
+              <button class="btn btn-secondary" onclick="showToast('Porównanie z branżą — wkrótce.')">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.5 16H3v2h6.5v3L13 17l-3.5-4v3zm5-6H21V8h-6.5V5L11 9l3.5 4V10z"/></svg>
+                Porównaj z branżą
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Interpretacja -->
+        <div class="ai-block mb24">
+          <div class="ai-header">
+            <span class="ai-pill">DataGate AI</span>
+            <span style="font-size:12px;color:var(--gray-400)">Interpretacja automatyczna · 28.05.2025</span>
+          </div>
+          <div class="ai-text">Firma posiada stabilną sytuację płynnościową, jednak rosnący poziom zadłużenia może wymagać dalszej kontroli w kolejnych okresach. Rentowność operacyjna utrzymuje się na zadowalającym poziomie, co wskazuje na skuteczność zarządzania kosztami. Wskaźniki sprawności działania sugerują efektywne wykorzystanie aktywów, niemniej zaleca się monitorowanie rotacji należności w kontekście spowolnienia w sektorze paliwowym.</div>
+        </div>
+
+        <!-- Wskaźniki: Płynność -->
+        <div class="mb24">
+          <div class="section-header">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="section-title">Płynność finansowa</div>
+              <span class="badge badge-green">Dobra</span>
+            </div>
+          </div>
+          <div class="grid-4">
+            <div class="indicator-card">
+              <div class="ind-header"><div class="ind-name">Płynność bieżąca (CR)</div><span class="badge badge-green">Dobry</span></div>
+              <div class="ind-value">1.84</div>
+              <div class="ind-desc">Firma jest w stanie pokryć bieżące zobowiązania. Wartość powyżej normy (1.2–2.0).</div>
+            </div>
+            <div class="indicator-card">
+              <div class="ind-header"><div class="ind-name">Płynność szybka (QR)</div><span class="badge badge-green">Dobry</span></div>
+              <div class="ind-value">1.41</div>
+              <div class="ind-desc">Aktywa płynne bez zapasów wystarczająco pokrywają zobowiązania krótkoterminowe.</div>
+            </div>
+            <div class="indicator-card">
+              <div class="ind-header"><div class="ind-name">Płynność gotówkowa</div><span class="badge badge-yellow">Średni</span></div>
+              <div class="ind-value">0.62</div>
+              <div class="ind-desc">Środki pieniężne stanowią umiarkowaną część pokrycia zobowiązań bieżących.</div>
+            </div>
+            <div class="indicator-card">
+              <div class="ind-header"><div class="ind-name">Kapitał obrotowy</div><span class="badge badge-green">Dobry</span></div>
+              <div class="ind-value">4.2 mld</div>
+              <div class="ind-desc">Dodatni kapitał obrotowy netto świadczy o stabilności operacyjnej firmy.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wskaźniki: Rentowność -->
+        <div class="mb24">
+          <div class="section-header">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="section-title">Rentowność</div>
+              <span class="badge badge-green">Dobra</span>
+            </div>
+          </div>
+          <div class="grid-4">
+            <div class="indicator-card">
+              <div class="ind-header"><div class="ind-name">ROE</div><span class="badge badge-green">Dobry</span></div>
+              <div class="ind-value">18.3%</div>
+              <div class="ind-desc">Wysoka stopa zwrotu z kapitału własnego. Branżowa średnia wynosi ok. 14%.</div>
+            </div>
+            <div class="indicator-card">
+              <div class="ind-header"><div class="ind-name">ROA</div><span class="badge badge-yellow">Średni</span></div>
+              <div class="ind-value">7.1%</div>
+              <div class="ind-desc">Zwrot z aktywów na przeciętnym poziomie. Typowe dla firm paliwowych z dużą bazą środków trwałych.</div>
+            </div>
+            <div class="indicator-card">
+              <div class="ind-header"><div class="ind-name">Marża EBITDA</div><span class="badge badge-green">Dobry</span></div>
+              <div class="ind-value">12.7%</div>
+              <div class="ind-desc">Marża operacyjna EBITDA stabilna rok do roku, powyżej mediany sektora.</div>
+            </div>
+            <div class="indicator-card">
+              <div class="ind-header"><div class="ind-name">Marża netto</div><span class="badge badge-yellow">Średni</span></div>
+              <div class="ind-value">5.4%</div>
+              <div class="ind-desc">Na marżę netto wpływają znaczące koszty finansowania i amortyzacji.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wskaźniki: Zadłużenie -->
+        <div class="mb24">
+          <div class="section-header">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="section-title">Zadłużenie</div>
+              <span class="badge badge-yellow">Umiarkowane</span>
+            </div>
+          </div>
+          <div class="grid-4">
+            <div class="indicator-card">
+              <div class="ind-header"><div class="ind-name">D/E (dług/kapitał)</div><span class="badge badge-yellow">Średni</span></div>
+              <div class="ind-value">0.87</div>
+              <div class="ind-desc">Umiarkowany poziom dźwigni finansowej. Wartość poniżej progu ryzyka (1.5).</div>
+            </div>
+            <div class="indicator-card">
+              <div class="ind-header"><div class="ind-name">Wskaźnik ogólnego zadłużenia</div><span class="badge badge-green">Dobry</span></div>
+              <div class="ind-value">0.46</div>
+              <div class="ind-desc">46% aktywów finansowane długiem. Bezpieczny poziom dla spółki paliwowej.</div>
+            </div>
+            <div class="indicator-card">
+              <div class="ind-header"><div class="ind-name">Pokrycie odsetek (ICR)</div><span class="badge badge-green">Dobry</span></div>
+              <div class="ind-value">6.2×</div>
+              <div class="ind-desc">EBIT 6-krotnie przekracza koszty odsetek. Bardzo dobra zdolność do obsługi długu.</div>
+            </div>
+            <div class="indicator-card">
+              <div class="ind-header"><div class="ind-name">Dług netto / EBITDA</div><span class="badge badge-yellow">Średni</span></div>
+              <div class="ind-value">2.1×</div>
+              <div class="ind-desc">Poziom na pograniczu optymalnym. Zalecany monitoring w kolejnych kwartałach.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wskaźniki: Sprawność -->
+        <div class="mb24">
+          <div class="section-header">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="section-title">Sprawność działania</div>
+              <span class="badge badge-green">Dobra</span>
+            </div>
+          </div>
+          <div class="grid-4">
+            <div class="indicator-card">
+              <div class="ind-header"><div class="ind-name">Rotacja zapasów</div><span class="badge badge-green">Dobry</span></div>
+              <div class="ind-value">14.2×</div>
+              <div class="ind-desc">Wysoka rotacja zapasów — efektywne zarządzanie łańcuchem dostaw i magazynem.</div>
+            </div>
+            <div class="indicator-card">
+              <div class="ind-header"><div class="ind-name">Rotacja należności (DSO)</div><span class="badge badge-yellow">Średni</span></div>
+              <div class="ind-value">38 dni</div>
+              <div class="ind-desc">Cykl inkasa należności nieznacznie wydłużył się r/r. Zalecane działania windykacyjne.</div>
+            </div>
+            <div class="indicator-card">
+              <div class="ind-header"><div class="ind-name">Rotacja aktywów</div><span class="badge badge-green">Dobry</span></div>
+              <div class="ind-value">1.32</div>
+              <div class="ind-desc">Dobra efektywność generowania przychodów z posiadanej bazy aktywów.</div>
+            </div>
+            <div class="indicator-card">
+              <div class="ind-header"><div class="ind-name">Cykl operacyjny</div><span class="badge badge-green">Dobry</span></div>
+              <div class="ind-value">52 dni</div>
+              <div class="ind-desc">Krótki cykl konwersji gotówki świadczy o sprawności operacyjnej firmy.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wykresy CSS -->
+        <div class="grid-2 mb24">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Przychody vs Koszty (mld PLN)</div></div>
+            <div class="card-body">
+              <div class="bar-chart">
+                <div class="bar-group"><div class="bar-wrap"><div class="bar bar-navy" style="height:55%"></div><div class="bar bar-teal" style="height:48%"></div></div><div class="bar-label">Q1</div></div>
+                <div class="bar-group"><div class="bar-wrap"><div class="bar bar-navy" style="height:72%"></div><div class="bar bar-teal" style="height:61%"></div></div><div class="bar-label">Q2</div></div>
+                <div class="bar-group"><div class="bar-wrap"><div class="bar bar-navy" style="height:88%"></div><div class="bar bar-teal" style="height:74%"></div></div><div class="bar-label">Q3</div></div>
+                <div class="bar-group"><div class="bar-wrap"><div class="bar bar-navy" style="height:78%"></div><div class="bar bar-teal" style="height:66%"></div></div><div class="bar-label">Q4</div></div>
+              </div>
+              <div style="display:flex;gap:16px;margin-top:12px">
+                <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--gray-500)"><div style="width:10px;height:10px;border-radius:2px;background:var(--navy)"></div>Przychody</div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--gray-500)"><div style="width:10px;height:10px;border-radius:2px;background:var(--teal)"></div>Koszty</div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Struktura finansowania</div></div>
+            <div class="card-body">
+              <div class="donut-wrap">
+                <div class="donut">
+                  <svg viewBox="0 0 80 80" width="100" height="100">
+                    <circle fill="none" stroke="#f1f5f9" stroke-width="14" cx="40" cy="40" r="29"/>
+                    <circle fill="none" stroke="#0d1a34" stroke-width="14" cx="40" cy="40" r="29" stroke-dasharray="182" stroke-dashoffset="0" stroke-linecap="round"/>
+                    <circle fill="none" stroke="#0ea5e9" stroke-width="14" cx="40" cy="40" r="29" stroke-dasharray="182" stroke-dashoffset="98" stroke-linecap="round"/>
+                    <circle fill="none" stroke="#10b981" stroke-width="14" cx="40" cy="40" r="29" stroke-dasharray="182" stroke-dashoffset="152" stroke-linecap="round"/>
+                  </svg>
+                  <div class="donut-value" style="font-size:14px;font-weight:700">54%<br><span style="font-size:9px;color:var(--gray-400);font-weight:400">kapitał</span></div>
+                </div>
+                <div class="donut-legend">
+                  <div class="legend-item"><div class="legend-dot" style="background:var(--navy)"></div>Kapitał własny 54%</div>
+                  <div class="legend-item"><div class="legend-dot" style="background:var(--teal)"></div>Dług długoterminowy 30%</div>
+                  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Zobowiązania bieżące 16%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SCENARIUSZE ═══ -->
+      <div class="page" id="page-scenarios">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+              <h2 style="font-size:18px;font-weight:700;color:var(--navy)">DataGate Scenario</h2>
+              <span class="module-badge">Beta</span>
+            </div>
+            <p style="font-size:13px;color:var(--gray-400)">Symuluj wpływ decyzji biznesowych na wyniki finansowe — na podstawie raportu ORLEN 2024.</p>
+          </div>
+        </div>
+
+        <div class="grid-2 mb24">
+          <div class="scenario-card">
+            <div class="sc-icon" style="background:rgba(16,185,129,.1)">
+              <svg viewBox="0 0 24 24" fill="#10b981" width="20" height="20"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
+            </div>
+            <div class="sc-title">Wzrost przychodów o X%</div>
+            <div class="sc-desc">Symulacja efektu zwiększenia przychodów na wynik netto, cash flow i ogólną kondycję finansową.</div>
+            <div class="sc-impact">
+              <div class="sc-metric"><div class="sc-metric-label">Wynik netto</div><div class="sc-metric-val up" id="sc1-net">+12.4%</div></div>
+              <div class="sc-metric"><div class="sc-metric-label">Cash flow</div><div class="sc-metric-val up" id="sc1-cf">+8.7%</div></div>
+              <div class="sc-metric"><div class="sc-metric-label">Zadłużenie</div><div class="sc-metric-val neutral" id="sc1-debt">−0.2×</div></div>
+              <div class="sc-metric"><div class="sc-metric-label">Kondycja</div><div class="sc-metric-val up" id="sc1-health">87/100</div></div>
+            </div>
+            <div class="range-wrap">
+              <span style="font-size:11px;color:var(--gray-400)">Wzrost:</span>
+              <input type="range" min="1" max="30" value="10" oninput="updateScenario1(this.value)">
+              <span class="range-val" id="sc1-val">10%</span>
+            </div>
+          </div>
+
+          <div class="scenario-card">
+            <div class="sc-icon" style="background:rgba(37,99,235,.1)">
+              <svg viewBox="0 0 24 24" fill="#2563eb" width="20" height="20"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+            </div>
+            <div class="sc-title">Redukcja kosztów operacyjnych</div>
+            <div class="sc-desc">Wpływ obniżenia kosztów OPEX na marże, wynik i ogólną kondycję finansową firmy.</div>
+            <div class="sc-impact">
+              <div class="sc-metric"><div class="sc-metric-label">Wynik netto</div><div class="sc-metric-val up" id="sc2-net">+6.1%</div></div>
+              <div class="sc-metric"><div class="sc-metric-label">Marża EBITDA</div><div class="sc-metric-val up" id="sc2-cf">14.8%</div></div>
+              <div class="sc-metric"><div class="sc-metric-label">Zadłużenie</div><div class="sc-metric-val neutral" id="sc2-debt">Bez zmian</div></div>
+              <div class="sc-metric"><div class="sc-metric-label">Kondycja</div><div class="sc-metric-val up" id="sc2-health">85/100</div></div>
+            </div>
+            <div class="range-wrap">
+              <span style="font-size:11px;color:var(--gray-400)">Redukcja:</span>
+              <input type="range" min="1" max="20" value="5" oninput="updateScenario2(this.value)">
+              <span class="range-val" id="sc2-val">5%</span>
+            </div>
+          </div>
+
+          <div class="scenario-card">
+            <div class="sc-icon" style="background:rgba(245,158,11,.1)">
+              <svg viewBox="0 0 24 24" fill="#f59e0b" width="20" height="20"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+            </div>
+            <div class="sc-title">Wzrost kosztów finansowania</div>
+            <div class="sc-desc">Symulacja wpływu wzrostu stóp procentowych i kosztów obsługi długu na kondycję finansową.</div>
+            <div class="sc-impact">
+              <div class="sc-metric"><div class="sc-metric-label">Wynik netto</div><div class="sc-metric-val down" id="sc3-net">−4.2%</div></div>
+              <div class="sc-metric"><div class="sc-metric-label">ICR</div><div class="sc-metric-val down" id="sc3-cf">5.1×</div></div>
+              <div class="sc-metric"><div class="sc-metric-label">Zadłużenie</div><div class="sc-metric-val down" id="sc3-debt">+0.1×</div></div>
+              <div class="sc-metric"><div class="sc-metric-label">Kondycja</div><div class="sc-metric-val down" id="sc3-health">78/100</div></div>
+            </div>
+            <div class="range-wrap">
+              <span style="font-size:11px;color:var(--gray-400)">Wzrost stóp:</span>
+              <input type="range" min="0" max="5" step="0.25" value="1" oninput="updateScenario3(this.value)">
+              <span class="range-val" id="sc3-val">+1 pp</span>
+            </div>
+          </div>
+
+          <div class="scenario-card">
+            <div class="sc-icon" style="background:rgba(239,68,68,.1)">
+              <svg viewBox="0 0 24 24" fill="#ef4444" width="20" height="20"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
+            </div>
+            <div class="sc-title">Pogorszenie płynności</div>
+            <div class="sc-desc">Analiza ryzyka pogorszenia płynności bieżącej — scenariusz stress-testowy dla zarządu.</div>
+            <div class="sc-impact">
+              <div class="sc-metric"><div class="sc-metric-label">Płynność bieżąca</div><div class="sc-metric-val down" id="sc4-net">1.42</div></div>
+              <div class="sc-metric"><div class="sc-metric-label">Cash flow</div><div class="sc-metric-val down" id="sc4-cf">−18%</div></div>
+              <div class="sc-metric"><div class="sc-metric-label">Ryzyko</div><div class="sc-metric-val down" id="sc4-debt">Średnie</div></div>
+              <div class="sc-metric"><div class="sc-metric-label">Kondycja</div><div class="sc-metric-val down" id="sc4-health">73/100</div></div>
+            </div>
+            <div class="range-wrap">
+              <span style="font-size:11px;color:var(--gray-400)">Spadek płynności:</span>
+              <input type="range" min="5" max="40" value="15" oninput="updateScenario4(this.value)">
+              <span class="range-val" id="sc4-val">15%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ BUDŻETY ═══ -->
+      <div class="page" id="page-budget">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+              <h2 style="font-size:18px;font-weight:700;color:var(--navy)">DataGate Budget</h2>
+              <span class="module-badge">Moduł kontrolingowy</span>
+            </div>
+            <p style="font-size:13px;color:var(--gray-400)">Plan vs wykonanie · ORLEN 2024 · Aktualizacja: 28.05.2025</p>
+          </div>
+        </div>
+
+        <div class="grid-4 mb24">
+          <div class="kpi-card blue">
+            <div class="kpi-label">Realizacja budżetu</div>
+            <div class="kpi-value">94<span style="font-size:14px;color:var(--gray-400)">%</span></div>
+            <div class="kpi-change down">▼ Poniżej planu o 6%</div>
+          </div>
+          <div class="kpi-card yellow">
+            <div class="kpi-label">Odchylenie kosztów</div>
+            <div class="kpi-value">+2.3<span style="font-size:14px;color:var(--gray-400)">%</span></div>
+            <div class="kpi-change down">▼ Koszty powyżej planu</div>
+          </div>
+          <div class="kpi-card green">
+            <div class="kpi-label">Prognoza końca roku</div>
+            <div class="kpi-value">148<span style="font-size:14px;color:var(--gray-400)"> mld</span></div>
+            <div class="kpi-change up">▲ Zgodna z planem rocznym</div>
+          </div>
+          <div class="kpi-card red">
+            <div class="kpi-label">Ryzyko przekroczenia</div>
+            <div class="kpi-value">Niskie</div>
+            <div class="kpi-change neutral">Monitoring kwartał Q3</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header mb8">
+            <div class="card-title">Plan vs Wykonanie — Miesięcznie (mld PLN)</div>
+            <span class="badge badge-blue">2024</span>
+          </div>
+          <div class="card-body" style="padding-top:8px;overflow-x:auto">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Miesiąc</th>
+                  <th>Przychody plan</th><th>Przychody rzecz.</th>
+                  <th>Koszty plan</th><th>Koszty rzecz.</th>
+                  <th>Odchylenie</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Styczeń</td><td>11.2</td><td style="font-weight:600">10.8</td><td>9.4</td><td style="font-weight:600">9.7</td><td class="delta-neg">−0.7</td><td><span class="badge badge-yellow">Odchylenie</span></td></tr>
+                <tr><td>Luty</td><td>10.8</td><td style="font-weight:600">11.1</td><td>9.1</td><td style="font-weight:600">9.0</td><td class="delta-pos">+0.2</td><td><span class="badge badge-green">OK</span></td></tr>
+                <tr><td>Marzec</td><td>12.0</td><td style="font-weight:600">12.3</td><td>10.0</td><td style="font-weight:600">10.1</td><td class="delta-pos">+0.2</td><td><span class="badge badge-green">OK</span></td></tr>
+                <tr><td>Kwiecień</td><td>11.5</td><td style="font-weight:600">10.9</td><td>9.6</td><td style="font-weight:600">9.8</td><td class="delta-neg">−0.8</td><td><span class="badge badge-yellow">Odchylenie</span></td></tr>
+                <tr><td>Maj</td><td>12.2</td><td style="font-weight:600">12.5</td><td>10.2</td><td style="font-weight:600">10.4</td><td class="delta-pos">+0.1</td><td><span class="badge badge-green">OK</span></td></tr>
+                <tr><td>Czerwiec</td><td>11.9</td><td style="font-weight:600">11.4</td><td>9.9</td><td style="font-weight:600">9.8</td><td class="delta-neg">−0.4</td><td><span class="badge badge-green">OK</span></td></tr>
+                <tr><td>Lipiec</td><td>12.4</td><td style="font-weight:600">12.8</td><td>10.3</td><td style="font-weight:600">10.5</td><td class="delta-pos">+0.2</td><td><span class="badge badge-green">OK</span></td></tr>
+                <tr><td>Sierpień</td><td>12.1</td><td style="font-weight:600">11.7</td><td>10.1</td><td style="font-weight:600">10.3</td><td class="delta-neg">−0.7</td><td><span class="badge badge-yellow">Odchylenie</span></td></tr>
+                <tr><td>Wrzesień</td><td>11.8</td><td style="font-weight:600">12.1</td><td>9.8</td><td style="font-weight:600">9.9</td><td class="delta-pos">+0.2</td><td><span class="badge badge-green">OK</span></td></tr>
+                <tr><td>Październik</td><td>12.3</td><td style="font-weight:600">12.0</td><td>10.2</td><td style="font-weight:600">10.6</td><td class="delta-neg">−0.7</td><td><span class="badge badge-red">Ryzyko</span></td></tr>
+                <tr><td>Listopad</td><td>11.6</td><td style="font-weight:600">11.8</td><td>9.7</td><td style="font-weight:600">9.8</td><td class="delta-pos">+0.1</td><td><span class="badge badge-green">OK</span></td></tr>
+                <tr><td>Grudzień</td><td>13.2</td><td style="font-weight:600;color:var(--gray-300)">—</td><td>11.0</td><td style="font-weight:600;color:var(--gray-300)">—</td><td style="color:var(--gray-300)">—</td><td><span class="badge badge-blue">Prognoza</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loading">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Generowanie raportu...</div>
+  <div class="loading-sub">Obliczam wskaźniki finansowe</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+  <span id="toast-text"></span>
+</div>
+
+<script>
+const pageMap = {
+  dashboard: 'page-dashboard',
+  create: 'page-create',
+  reports: 'page-reports',
+  analysis: 'page-analysis',
+  scenarios: 'page-scenarios',
+  budget: 'page-budget',
+};
+
+const titleMap = {
+  dashboard: ['Dashboard', 'Przegląd · Maj 2025'],
+  create: ['Utwórz raport', 'DataGate Analyze · Nowy raport'],
+  reports: ['Moje raporty', 'DataGate Analyze · 4 raporty'],
+  analysis: ['Analiza wskaźnikowa', 'DataGate Analyze · ORLEN 2024'],
+  scenarios: ['Scenariusze', 'DataGate Scenario · ORLEN 2024'],
+  budget: ['Budżety', 'DataGate Budget · Plan vs Wykonanie'],
+};
+
+function navigate(page, navEl) {
+  // Hide all pages
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(pageMap[page]).classList.add('active');
+
+  // Update nav
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (navEl) navEl.classList.add('active');
+
+  // Update topbar
+  const [title, crumb] = titleMap[page];
+  document.getElementById('topbar-title').textContent = title;
+  document.getElementById('topbar-crumb').textContent = crumb;
+
+  // Scroll to top
+  document.querySelector('.content').scrollTop = 0;
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-text').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function generateReport() {
+  const overlay = document.getElementById('loading');
+  overlay.classList.add('show');
+  const msgs = ['Obliczam wskaźniki finansowe...', 'Analizuję dane bilansowe...', 'Generuję interpretacje AI...', 'Finalizuję raport...'];
+  let i = 0;
+  const iv = setInterval(() => {
+    document.querySelector('.loading-sub').textContent = msgs[++i % msgs.length];
+  }, 900);
+  setTimeout(() => {
+    clearInterval(iv);
+    overlay.classList.remove('show');
+    navigate('analysis', document.querySelectorAll('.nav-item')[3]);
+    showToast('Raport wygenerowany pomyślnie!');
+  }, 3600);
+}
+
+function handleFile(input) {
+  if (input.files.length) {
+    const fp = document.getElementById('file-preview');
+    document.getElementById('file-name').textContent = '✓ ' + input.files[0].name + ' (' + (input.files[0].size / 1024).toFixed(1) + ' KB)';
+    fp.style.display = 'flex';
+    showToast('Plik wgrany: ' + input.files[0].name);
+  }
+}
+
+function handleDrop(e) {
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    const fp = document.getElementById('file-preview');
+    document.getElementById('file-name').textContent = '✓ ' + file.name;
+    fp.style.display = 'flex';
+    showToast('Plik wgrany: ' + file.name);
+  }
+}
+
+// Scenario sliders
+function updateScenario1(v) {
+  document.getElementById('sc1-val').textContent = v + '%';
+  document.getElementById('sc1-net').textContent = '+' + (v * 1.24).toFixed(1) + '%';
+  document.getElementById('sc1-cf').textContent = '+' + (v * 0.87).toFixed(1) + '%';
+  document.getElementById('sc1-health').textContent = Math.min(100, Math.round(82 + v * 0.25)) + '/100';
+}
+function updateScenario2(v) {
+  document.getElementById('sc2-val').textContent = v + '%';
+  document.getElementById('sc2-net').textContent = '+' + (v * 1.22).toFixed(1) + '%';
+  document.getElementById('sc2-cf').textContent = (12.7 + v * 0.42).toFixed(1) + '%';
+  document.getElementById('sc2-health').textContent = Math.min(100, Math.round(82 + v * 0.3)) + '/100';
+}
+function updateScenario3(v) {
+  document.getElementById('sc3-val').textContent = '+' + v + ' pp';
+  document.getElementById('sc3-net').textContent = '−' + (v * 4.2).toFixed(1) + '%';
+  document.getElementById('sc3-cf').textContent = (6.2 - v * 1.1).toFixed(1) + '×';
+  document.getElementById('sc3-health').textContent = Math.max(50, Math.round(82 - v * 4)) + '/100';
+}
+function updateScenario4(v) {
+  document.getElementById('sc4-val').textContent = v + '%';
+  document.getElementById('sc4-net').textContent = (1.84 - v * 0.028).toFixed(2);
+  document.getElementById('sc4-cf').textContent = '−' + (v * 1.2).toFixed(0) + '%';
+  document.getElementById('sc4-health').textContent = Math.max(50, Math.round(82 - v * 0.6)) + '/100';
+}
+</script>
+</body>
+</html>
