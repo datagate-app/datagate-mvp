@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 type NavLinkItem = {
@@ -37,17 +38,6 @@ function IconBudget() {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z" />
-    </svg>
-  );
-}
-
-function LogoGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M3 3h7v7H3V3Zm11 0h7v7h-7V3ZM3 14h7v7H3v-7Zm11 4h2v-2h2v2h2v2h-2v2h-2v-2h-2v-2Z"
-      />
     </svg>
   );
 }
@@ -121,10 +111,15 @@ export default function Sidebar() {
     <aside className="dg-sidebar z-10 flex w-full shrink-0 flex-col md:min-h-screen md:w-60">
       <div className="relative z-10 border-b border-white/10 px-5 py-5">
         <Link href="/dashboard" className="flex items-center gap-2.5">
-          <span className="dg-logo-icon flex h-8 w-8 items-center justify-center rounded-lg text-white">
-            <span className="h-[18px] w-[18px]">
-              <LogoGlyph />
-            </span>
+          <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-white/5">
+            <Image
+              src="/logo_white_kwadrat.png"
+              alt=""
+              fill
+              sizes="36px"
+              className="object-contain"
+              priority
+            />
           </span>
           <span>
             <span className="block text-[17px] font-bold leading-none tracking-[-0.03em] text-white">
